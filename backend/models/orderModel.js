@@ -29,3 +29,28 @@ async function placeOrder(userId, shippingAddress) {
         );
       }
     }
+    
+    const totalAmount = cartItems.reduce((sum, item) => sum + item.quantity * Number(item.price), 0);
+
+    const orderResult = await client.query(
+      `INSERT INTO orders (user_id, total_amount, shipping_address, status)
+       VALUES ($1, $2, $3, 'pending')
+       RETURNING *`,
+      [userId, totalAmount, shippingAddress]
+    );
+    const order = orderResult.rows[0];
+
+    for (const item of cartItems) {
+      await client.query(
+        `INSERT INTO order_items (order_id, product_id, seller_id, quantity, price)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [order.id, item.product_id, item.seller_id, item.quantity, item.price]
+      );
+
+      await client.query(
+        'UPDATE products SET stock = stock - $1 WHERE id = $2',
+        [item.quantity, item.product_id]
+      );
+    }
+
+    await client.query('DELETE FROM cart_items WHERE user_id = $1', [userId]);
