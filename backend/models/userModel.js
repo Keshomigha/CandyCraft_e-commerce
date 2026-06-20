@@ -59,3 +59,34 @@ async function getAllUsers() {
   );
   return result.rows;
 }
+
+async function getAllSellers() {
+  const result = await pool.query(
+    `SELECT s.id, s.user_id, s.shop_name, s.description, s.status, s.created_at,
+            u.name, u.email
+     FROM sellers s
+     JOIN users u ON u.id = s.user_id
+     ORDER BY s.created_at DESC`
+  );
+  return result.rows;
+}
+
+async function updateSellerStatus(sellerId, status) {
+  const result = await pool.query(
+    `UPDATE sellers SET status = $1 WHERE id = $2 RETURNING *`,
+    [status, sellerId]
+  );
+  return result.rows[0];
+}
+
+module.exports = {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  findSellerByUserId,
+  createSellerProfile,
+  getApprovedSellers,
+  getAllUsers,
+  getAllSellers,
+  updateSellerStatus,
+};
