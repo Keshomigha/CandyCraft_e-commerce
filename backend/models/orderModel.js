@@ -80,3 +80,29 @@ async function getOrderById(orderId, userId) {
   );
   return result.rows[0];
 }
+
+async function updateOrderStatus(orderId, status) {
+  const result = await pool.query(
+    'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
+    [status, orderId]
+  );
+  return result.rows[0];
+}
+
+async function getAllOrdersAdmin() {
+  const result = await pool.query(
+    `SELECT o.*, u.name AS buyer_name, u.email AS buyer_email
+     FROM orders o
+     JOIN users u ON u.id = o.user_id
+     ORDER BY o.created_at DESC`
+  );
+  return result.rows;
+}
+
+module.exports = {
+  placeOrder,
+  getOrdersByUser,
+  getOrderById,
+  updateOrderStatus,
+  getAllOrdersAdmin,
+};
