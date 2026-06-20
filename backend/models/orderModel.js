@@ -54,3 +54,29 @@ async function placeOrder(userId, shippingAddress) {
     }
 
     await client.query('DELETE FROM cart_items WHERE user_id = $1', [userId]);
+
+        await client.query('COMMIT');
+    return order;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+async function getOrdersByUser(userId) {
+  const result = await pool.query(
+    'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC',
+    [userId]
+  );
+  return result.rows;
+}
+
+async function getOrderById(orderId, userId) {
+  const result = await pool.query(
+    'SELECT * FROM orders WHERE id = $1 AND user_id = $2',
+    [orderId, userId]
+  );
+  return result.rows[0];
+}
