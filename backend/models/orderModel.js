@@ -14,3 +14,18 @@ async function placeOrder(userId, shippingAddress) {
        FOR UPDATE OF p`,
       [userId]
     );
+
+    
+    const cartItems = cartResult.rows;
+    if (cartItems.length === 0) {
+      throw Object.assign(new Error('Cart is empty'), { statusCode: 400 });
+    }
+
+    for (const item of cartItems) {
+      if (item.quantity > item.stock) {
+        throw Object.assign(
+          new Error(`Not enough stock for "${item.name}". Available: ${item.stock}`),
+          { statusCode: 400 }
+        );
+      }
+    }
