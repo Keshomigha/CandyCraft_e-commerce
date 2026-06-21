@@ -19,3 +19,24 @@ async function getReviewByUserAndProduct(userId, productId) {
   );
   return result.rows[0];
 }
+
+async function hasPurchasedProduct(userId, productId) {
+  const result = await pool.query(
+    `SELECT 1 FROM order_items oi
+     JOIN orders o ON o.id = oi.order_id
+     WHERE o.user_id = $1 AND oi.product_id = $2
+     LIMIT 1`,
+    [userId, productId]
+  );
+  return result.rows.length > 0;
+}
+
+async function createReview(userId, productId, rating, comment) {
+  const result = await pool.query(
+    `INSERT INTO reviews (product_id, user_id, rating, comment)
+     VALUES ($1, $2, $3, $4)
+     RETURNING *`,
+    [productId, userId, rating, comment]
+  );
+  return result.rows[0];
+}
