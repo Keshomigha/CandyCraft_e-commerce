@@ -23,3 +23,24 @@ async function getOrderItemsBySeller(sellerId) {
   );
   return result.rows;
 }
+
+async function getSellerStats(sellerId) {
+  const result = await pool.query(
+    `SELECT
+       COALESCE(SUM(oi.quantity * oi.price), 0) AS total_revenue,
+       COALESCE(SUM(oi.quantity), 0) AS total_items_sold,
+       COUNT(DISTINCT oi.order_id) AS total_orders
+     FROM order_items oi
+     WHERE oi.seller_id = $1`,
+    [sellerId]
+  );
+
+  const row = result.rows[0];
+  return {
+    totalRevenue: Number(row.total_revenue),
+    totalItemsSold: Number(row.total_items_sold),
+    totalOrders: Number(row.total_orders),
+  };
+}
+
+module.exports = { getItemsByOrder, getOrderItemsBySeller, getSellerStats };
