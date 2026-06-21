@@ -65,3 +65,23 @@ async function getAllReviewsAdmin() {
   );
   return result.rows;
 }
+
+async function updateReviewStatus(id, status) {
+  const result = await pool.query(
+    'UPDATE reviews SET status = $1 WHERE id = $2 RETURNING *',
+    [status, id]
+  );
+  return result.rows[0];
+}
+
+async function getReviewsByUser(userId) {
+  const result = await pool.query(
+    `SELECT r.id, r.rating, r.comment, r.created_at, p.id AS product_id, p.name AS product_name, p.image_url AS product_image
+     FROM reviews r
+     JOIN products p ON p.id = r.product_id
+     WHERE r.user_id = $1
+     ORDER BY r.created_at DESC`,
+    [userId]
+  );
+  return result.rows;
+}
