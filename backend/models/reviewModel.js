@@ -85,3 +85,29 @@ async function getReviewsByUser(userId) {
   );
   return result.rows;
 }
+
+async function getPendingReviewsByUser(userId) {
+  const result = await pool.query(
+    `SELECT DISTINCT p.id AS product_id, p.name AS product_name, p.image_url AS product_image, o.id AS order_id
+     FROM order_items oi
+     JOIN orders o ON o.id = oi.order_id
+     JOIN products p ON p.id = oi.product_id
+     WHERE o.user_id = $1 AND o.status IN ('delivered', 'shipped') AND NOT EXISTS (
+       SELECT 1 FROM reviews r WHERE r.user_id = $1 AND r.product_id = oi.product_id
+     )`,
+     [userId]
+  );
+  return result.rows;
+}
+
+module.exports = {
+  getReviewsByProduct,
+  getReviewByUserAndProduct,
+  hasPurchasedProduct,
+  createReview,
+  getReviewsBySeller,
+  getAllReviewsAdmin,
+  updateReviewStatus,
+  getReviewsByUser,
+  getPendingReviewsByUser,
+};
