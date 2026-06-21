@@ -23,3 +23,33 @@ async function addOrUpdateCartItem(userId, productId, quantity) {
   );
   return result.rows[0];
 }
+
+async function setCartItemQuantity(userId, productId, quantity) {
+  const result = await pool.query(
+    `UPDATE cart_items SET quantity = $3
+     WHERE user_id = $1 AND product_id = $2
+     RETURNING *`,
+    [userId, productId, quantity]
+  );
+  return result.rows[0];
+}
+
+async function removeCartItem(userId, productId) {
+  const result = await pool.query(
+    'DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2 RETURNING *',
+    [userId, productId]
+  );
+  return result.rows[0];
+}
+
+async function clearCart(userId) {
+  await pool.query('DELETE FROM cart_items WHERE user_id = $1', [userId]);
+}
+
+module.exports = {
+  getCartByUser,
+  addOrUpdateCartItem,
+  setCartItemQuantity,
+  removeCartItem,
+  clearCart,
+};
