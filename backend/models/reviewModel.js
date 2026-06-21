@@ -40,3 +40,28 @@ async function createReview(userId, productId, rating, comment) {
   );
   return result.rows[0];
 }
+
+async function getReviewsBySeller(sellerId) {
+  const result = await pool.query(
+    `SELECT r.id, r.rating, r.comment, r.status, r.created_at,
+            u.name AS user_name, p.id AS product_id, p.name AS product_name
+     FROM reviews r
+     JOIN products p ON p.id = r.product_id
+     JOIN users u ON u.id = r.user_id
+     WHERE p.seller_id = $1
+     ORDER BY r.created_at DESC`,
+    [sellerId]
+  );
+  return result.rows;
+}
+
+async function getAllReviewsAdmin() {
+  const result = await pool.query(
+    `SELECT r.*, u.name AS user_name, p.name AS product_name
+     FROM reviews r
+     JOIN users u ON u.id = r.user_id
+     JOIN products p ON p.id = r.product_id
+     ORDER BY r.created_at DESC`
+  );
+  return result.rows;
+}
