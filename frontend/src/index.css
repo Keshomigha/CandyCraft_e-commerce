@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --primary: #F4A261;
+  --color-primary: #F4A261;
+
+  --color-pink-50: #FEF3E8;
+  --color-pink-100: #FEF3E8;
+  --color-pink-200: #FCEADE;
+  --color-pink-300: #FAD1B8;
+  --color-pink-400: #F4A261;
+  --color-pink-500: #F4A261;
+  --color-pink-600: #E76F51;
+  --color-pink-700: #D65A3C;
+  --color-pink-800: #B5452B;
+  --color-pink-900: #8F341F;
+  --color-pink-950: #5C1E11;
+
+  --color-purple-50: #FEF3E8;
+  --color-purple-100: #FEF3E8;
+  --color-purple-200: #FAD1B8;
+  --color-purple-300: #F4A261;
+  --color-purple-400: #F4A261;
+  --color-purple-500: #E76F51;
+  --color-purple-600: #E76F51;
+  --color-purple-700: #D65A3C;
+  --color-purple-800: #B5452B;
+  --color-purple-900: #8F341F;
+  --color-purple-950: #5C1E11;
+
+  --color-chart-1: oklch(77.5% 0.134 43.3);
+  --color-chart-2: oklch(66.2% 0.179 36.6);
+  --color-chart-3: oklch(84.3% 0.088 51.2);
+  --color-chart-4: oklch(60.1% 0.194 32.5);
+  --color-chart-5: oklch(91.7% 0.046 58.7);
+
+  --chart-1: oklch(77.5% 0.134 43.3);
+  --chart-2: oklch(66.2% 0.179 36.6);
+  --chart-3: oklch(84.3% 0.088 51.2);
+  --chart-4: oklch(60.1% 0.194 32.5);
+  --chart-5: oklch(91.7% 0.046 58.7);
+}
+
+html, body {
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  background-color: #F5F0EB;
+}
