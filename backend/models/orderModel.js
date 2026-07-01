@@ -15,7 +15,6 @@ async function placeOrder(userId, shippingAddress) {
       [userId]
     );
 
-    
     const cartItems = cartResult.rows;
     if (cartItems.length === 0) {
       throw Object.assign(new Error('Cart is empty'), { statusCode: 400 });
@@ -29,7 +28,7 @@ async function placeOrder(userId, shippingAddress) {
         );
       }
     }
-    
+
     const totalAmount = cartItems.reduce((sum, item) => sum + item.quantity * Number(item.price), 0);
 
     const orderResult = await client.query(
@@ -55,7 +54,7 @@ async function placeOrder(userId, shippingAddress) {
 
     await client.query('DELETE FROM cart_items WHERE user_id = $1', [userId]);
 
-        await client.query('COMMIT');
+    await client.query('COMMIT');
     return order;
   } catch (err) {
     await client.query('ROLLBACK');
