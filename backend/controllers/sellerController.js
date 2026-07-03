@@ -1,6 +1,8 @@
 const { findSellerByUserId } = require('../models/userModel');
-const { getOrderItemsBySeller, getSellerStats } = require('../models/orderItemModel');
+const { getOrderItemsBySeller, getSellerStats, getMonthlyRevenue, getRecentOrdersBySeller } = require('../models/orderItemModel');
 const { getReviewsBySeller } = require('../models/reviewModel');
+const { updateOrderStatus } = require('../models/orderModel');
+const pool = require('../config/db');
 
 async function getProfile(req, res, next) {
   try {
@@ -56,4 +58,68 @@ async function getReviews(req, res, next) {
   }
 }
 
-module.exports = { getProfile, getOrders, getStats, getReviews };
+async function getRevenueChart(req, res, next) {
+  try {
+    const seller = await findSellerByUserId(req.user.id);
+    if (!seller) {
+      return res.status(404).json({ message: 'Seller profile not found' });
+    }
+
+    const data = await getMonthlyRevenue(seller.id);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getDashboard(req, res, next) {
+  try {
+    const seller = await findSellerByUserId(req.user.id);
+    if (!seller) {
+      return res.status(404).json({ message: 'Seller profile not found' });
+    }
+
+    const [stats, revenueChart, recentOrders] = await Promise.all([
+      getSellerStats(seller.id),
+      getMonthlyRevenue(seller.id),
+      getRecentOrdersBySeller(seller.id, 5),
+    ]);
+
+    res.json({ stats, revenueChart, recentOrders });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function changeOrderStatus(req, res, next) {
+  try {
+    const seller = await findSellerByUserId(req.user.id);
+    if (!seller) {
+      return res.status(404).json({ message: 'Seller profile not found' });
+    }
+
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const allowed = ['processing', 'shipped', 'delivered'];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ message: `Invalid status. Allowed: ${allowed.join(', ')}` });
+    }
+
+    // Verify this order contains items from this seller
+    const check = await pool.query(
+      `SELECT 1 FROM order_items WHERE order_id = $1 AND seller_id = $2 LIMIT 1`,
+      [id, seller.id]
+    );
+    if (check.rows.length === 0) {
+      return res.status(404).json({ message: 'Order not found or not associated with your store' });
+    }
+
+    const updated = await updateOrderStatus(id, status);
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getProfile, getOrders, getStats, getReviews, getRevenueChart, getDashboard, changeOrderStatus };
