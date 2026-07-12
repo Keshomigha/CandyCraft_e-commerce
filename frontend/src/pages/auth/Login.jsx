@@ -21,10 +21,13 @@ export default function Login() {
     try {
       const res = await loginApi(form);
       login(res.data.token, res.data.user);
-      if (res.data.user.role === 'buyer') {
-        navigate('/buyer/dashboard');
+      const role = res.data.user.role;
+      if (role === 'seller') {
+        navigate('/seller/dashboard');
+      } else if (role === 'admin') {
+        navigate('/admin/dashboard');
       } else {
-        navigate('/');
+        navigate('/buyer/dashboard');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
