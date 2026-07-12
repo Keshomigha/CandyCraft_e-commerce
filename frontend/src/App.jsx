@@ -8,6 +8,9 @@ import MainLayout from './layouts/MainLayout';
 // Buyer panel layout
 import BuyerDashboardLayout from './layouts/BuyerDashboardLayout';
 
+// Seller panel layout
+import SellerDashboardLayout from './layouts/SellerDashboardLayout';
+
 // Public pages
 import Home from './pages/buyer/Home';
 import ProductListing from './pages/buyer/ProductListing';
@@ -23,6 +26,15 @@ import MyOrders from './pages/buyer/MyOrders';
 import Wishlist from './pages/buyer/Wishlist';
 import MyReviews from './pages/buyer/MyReviews';
 import Profile from './pages/buyer/Profile';
+
+// Seller panel pages
+import SellerDashboard from './pages/seller/SellerDashboard';
+import ManageProducts from './pages/seller/ManageProducts';
+import AddEditProduct from './pages/seller/AddEditProduct';
+import SellerOrders from './pages/seller/SellerOrders';
+import SellerReviews from './pages/seller/SellerReviews';
+import SalesEarnings from './pages/seller/SalesEarnings';
+import SellerProfile from './pages/seller/SellerProfile';
 
 // Protected route guard
 function RequireAuth({ children, role }) {
@@ -63,6 +75,26 @@ function App() {
             <Route path="wishlist"  element={<Wishlist />} />
             <Route path="reviews"   element={<MyReviews />} />
             <Route path="profile"   element={<Profile />} />
+          </Route>
+
+          {/* Seller panel routes */}
+          <Route
+            path="/seller"
+            element={
+              <RequireAuth role="seller">
+                <SellerDashboardLayout />
+              </RequireAuth>
+            }
+          >
+            <Route index element={<Navigate to="/seller/dashboard" replace />} />
+            <Route path="dashboard"          element={<SellerDashboard />} />
+            <Route path="products"           element={<ManageProducts />} />
+            <Route path="products/new"       element={<AddEditProduct />} />
+            <Route path="products/:id/edit"  element={<AddEditProduct />} />
+            <Route path="orders"             element={<SellerOrders />} />
+            <Route path="reviews"            element={<SellerReviews />} />
+            <Route path="earnings"           element={<SalesEarnings />} />
+            <Route path="profile"            element={<SellerProfile />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
