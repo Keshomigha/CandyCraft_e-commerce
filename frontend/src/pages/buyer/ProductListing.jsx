@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { getProducts } from '../../api/productApi';
 import { addToCart } from '../../api/cartApi';
 import useAuth from '../../hooks/useAuth';
@@ -9,6 +10,17 @@ const LIMIT = 9;
 
 const emojiFallbacks = ['🍬', '🎁', '🌹', '🍭', '🧁', '🍫'];
 const bgFallbacks    = ['bg-red-50','bg-pink-50','bg-orange-50','bg-yellow-50','bg-green-50','bg-purple-50'];
+
+const gridVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.97 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
+};
 
 function StarRating({ rating = 5 }) {
   return (
@@ -34,7 +46,13 @@ function ProductCard({ product, onAddToCart }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+    <motion.div
+      layout
+      variants={cardVariants}
+      whileHover={{ y: -6 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 group"
+    >
       {/* Image */}
       <div className={`relative ${bgFallbacks[idx]} h-48 overflow-hidden`}>
         {product.image_url ? (
@@ -60,11 +78,15 @@ function ProductCard({ product, onAddToCart }) {
         )}
 
         {/* Wishlist */}
-        <button className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow hover:text-pink-500 transition-colors">
+        <motion.button
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.9 }}
+          className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow hover:text-pink-500 transition-colors"
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 0 1 6.364 0L12 7.636l1.318-1.318a4.5 4.5 0 0 1 6.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 0 1 0-6.364z" />
           </svg>
-        </button>
+        </motion.button>
 
         {/* Category badge */}
         {product.category && (
@@ -97,21 +119,34 @@ function ProductCard({ product, onAddToCart }) {
               <span className="text-xs text-red-400 ml-2">Out of stock</span>
             )}
           </div>
-          <button
+          <motion.button
+            whileHover={{ scale: product.stock === 0 ? 1 : 1.08 }}
+            whileTap={{ scale: product.stock === 0 ? 1 : 0.92 }}
             onClick={handleAdd}
             disabled={product.stock === 0 || added}
-            className={`text-xs font-semibold px-3 py-2 rounded-full transition-all duration-200
+            className={`text-xs font-semibold px-3 py-2 rounded-full transition-colors duration-200
               ${added
                 ? 'bg-green-500 text-white'
                 : product.stock === 0
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-pink-500 hover:bg-pink-600 text-white'}`}
           >
-            {added ? '✓ Added' : '+ Cart'}
-          </button>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={added ? 'added' : 'add'}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15 }}
+                className="inline-block"
+              >
+                {added ? '✓ Added' : '+ Cart'}
+              </motion.span>
+            </AnimatePresence>
+          </motion.button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -174,12 +209,17 @@ export default function ProductListing() {
   return (
     <div className="min-h-screen bg-[#F5F0EB]">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100">
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="bg-white border-b border-gray-100"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Shop</h1>
           <p className="text-gray-400 text-sm">Discover handmade candy creations from student crafters</p>
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search + filters */}
@@ -199,28 +239,48 @@ export default function ProductListing() {
           </div>
 
           {/* Category filters */}
-          <div className="flex gap-2 flex-wrap">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setParam('category', cat === 'All' ? '' : cat)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all border
-                  ${category === cat || (cat === 'All' && !searchParams.get('category'))
-                    ? 'bg-pink-500 text-white border-pink-500'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300'}`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+          <LayoutGroup id="category-filters">
+            <div className="flex gap-2 flex-wrap">
+              {CATEGORIES.map((cat) => {
+                const isActive = category === cat || (cat === 'All' && !searchParams.get('category'));
+                return (
+                  <motion.button
+                    key={cat}
+                    onClick={() => setParam('category', cat === 'All' ? '' : cat)}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    className={`relative px-4 py-2 rounded-full text-sm font-medium transition-colors border
+                      ${isActive ? 'text-white border-pink-500' : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300'}`}
+                  >
+                    {isActive && (
+                      <motion.span
+                        layoutId="category-pill"
+                        className="absolute inset-0 bg-pink-500 rounded-full -z-10"
+                        transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                      />
+                    )}
+                    {cat}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </LayoutGroup>
         </div>
 
         {/* Cart toast */}
-        {cartMsg && (
-          <div className="fixed bottom-6 right-6 bg-gray-900 text-white text-sm px-5 py-3 rounded-xl shadow-lg z-50 animate-bounce">
-            {cartMsg}
-          </div>
-        )}
+        <AnimatePresence>
+          {cartMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+              className="fixed bottom-6 right-6 bg-gray-900 text-white text-sm px-5 py-3 rounded-xl shadow-lg z-50"
+            >
+              {cartMsg}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Grid */}
         {loading ? (
@@ -230,48 +290,70 @@ export default function ProductListing() {
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-24">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-24"
+          >
             <p className="text-5xl mb-4">🍬</p>
             <p className="text-gray-500 font-medium">No products found</p>
             <p className="text-gray-400 text-sm mt-1">Try a different search or category</p>
-          </div>
+          </motion.div>
         ) : (
           <>
             <p className="text-sm text-gray-400 mb-4">{products.length} product{products.length !== 1 ? 's' : ''} found</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((p) => (
-                <ProductCard key={p.id} product={p} onAddToCart={handleAddToCart} />
-              ))}
-            </div>
+            <motion.div
+              key={`${search}-${category}-${page}`}
+              variants={gridVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              <AnimatePresence mode="popLayout">
+                {products.map((p) => (
+                  <ProductCard key={p.id} product={p} onAddToCart={handleAddToCart} />
+                ))}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center gap-2 mt-10">
-                <button
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex justify-center gap-2 mt-10"
+              >
+                <motion.button
+                  whileHover={{ scale: page === 1 ? 1 : 1.05 }}
+                  whileTap={{ scale: page === 1 ? 1 : 0.95 }}
                   onClick={() => setSearchParams({ ...Object.fromEntries(searchParams), page: page - 1 })}
                   disabled={page === 1}
-                  className="px-4 py-2 rounded-full bg-white border border-gray-200 text-sm disabled:opacity-40 hover:border-pink-400 transition"
+                  className="px-4 py-2 rounded-full bg-white border border-gray-200 text-sm disabled:opacity-40 hover:border-pink-400 transition-colors"
                 >
                   ← Prev
-                </button>
+                </motion.button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <button
+                  <motion.button
                     key={p}
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.92 }}
                     onClick={() => setSearchParams({ ...Object.fromEntries(searchParams), page: p })}
-                    className={`w-9 h-9 rounded-full text-sm font-medium transition-all
+                    className={`w-9 h-9 rounded-full text-sm font-medium transition-colors
                       ${p === page ? 'bg-pink-500 text-white' : 'bg-white border border-gray-200 hover:border-pink-400'}`}
                   >
                     {p}
-                  </button>
+                  </motion.button>
                 ))}
-                <button
+                <motion.button
+                  whileHover={{ scale: page === totalPages ? 1 : 1.05 }}
+                  whileTap={{ scale: page === totalPages ? 1 : 0.95 }}
                   onClick={() => setSearchParams({ ...Object.fromEntries(searchParams), page: page + 1 })}
                   disabled={page === totalPages}
-                  className="px-4 py-2 rounded-full bg-white border border-gray-200 text-sm disabled:opacity-40 hover:border-pink-400 transition"
+                  className="px-4 py-2 rounded-full bg-white border border-gray-200 text-sm disabled:opacity-40 hover:border-pink-400 transition-colors"
                 >
                   Next →
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             )}
           </>
         )}
