@@ -1,9 +1,19 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import useAuth from '../../hooks/useAuth';
+
+const NAV_LINKS = [
+  { to: '/', label: 'Home', end: true },
+  { to: '/products', label: 'Shop' },
+  { to: '/about', label: 'About' },
+  { to: '/contact', label: 'Contact' },
+];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -11,12 +21,23 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-50">
+    <motion.nav
+      initial={{ y: -24, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="bg-white shadow-sm sticky top-0 z-50"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <span className="text-xl">🍬</span>
+            <motion.span
+              className="text-xl"
+              whileHover={{ rotate: [0, -15, 15, -10, 0], scale: 1.15 }}
+              transition={{ duration: 0.5 }}
+            >
+              🍬
+            </motion.span>
             <span className="font-bold text-xl">
               <span className="text-pink-500">candy</span>
               <span className="text-gray-800">craft</span>
@@ -25,64 +46,170 @@ export default function Navbar() {
 
           {/* Nav links */}
           <div className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-gray-700 hover:text-pink-500 font-medium text-md">Home</Link>
-            <Link to="/products" className="text-gray-700 hover:text-pink-500 font-medium text-md">Shop</Link>
-            <Link to="/about" className="text-gray-700 hover:text-pink-500 font-medium text-md">About</Link>
-            <Link to="/contact" className="text-gray-700 hover:text-pink-500 font-medium text-md">Contact</Link>
+            {NAV_LINKS.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.end}
+                className={({ isActive }) =>
+                  `relative font-medium text-md py-1 transition-colors ${
+                    isActive ? 'text-pink-500' : 'text-gray-700 hover:text-pink-500'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {link.label}
+                    {isActive && (
+                      <motion.span
+                        layoutId="nav-underline"
+                        className="absolute left-0 right-0 -bottom-1 h-0.5 bg-pink-500 rounded-full"
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
           </div>
 
           {/* Right */}
           <div className="flex items-center gap-4">
-            <button className="text-gray-500 hover:text-pink-500">
+            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} className="text-gray-500 hover:text-pink-500">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
               </svg>
-            </button>
-            <button className="text-gray-500 hover:text-pink-500">
+            </motion.button>
+            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} className="text-gray-500 hover:text-pink-500 hidden sm:block">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 0 1 6.364 0L12 7.636l1.318-1.318a4.5 4.5 0 0 1 6.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 0 1 0-6.364z" />
               </svg>
-            </button>
-            <button className="text-gray-500 hover:text-pink-500 relative">
+            </motion.button>
+            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} className="text-gray-500 hover:text-pink-500 relative hidden sm:block">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
               <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">0</span>
-            </button>
+            </motion.button>
 
             {user ? (
-              <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-3">
                 {user.role === 'buyer' && (
                   <Link
                     to="/buyer/dashboard"
-                    className="text-sm font-medium text-gray-700 hidden sm:block hover:text-[#F4A261] transition-colors"
+                    className="text-sm font-medium text-gray-700 hover:text-[#F4A261] transition-colors"
                   >
                     Hi, {user.name.split(' ')[0]} 👋
                   </Link>
                 )}
                 {user.role !== 'buyer' && (
-                  <span className="text-sm font-medium text-gray-700 hidden sm:block">
+                  <span className="text-sm font-medium text-gray-700">
                     Hi, {user.name.split(' ')[0]}
                   </span>
                 )}
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={handleLogout}
                   className="border border-pink-500 text-pink-500 hover:bg-pink-50 text-sm font-medium px-4 py-2 rounded-full transition-colors"
                 >
                   Logout
-                </button>
+                </motion.button>
               </div>
             ) : (
-              <Link
-                to="/login"
-                className="bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors"
-              >
-                Login
-              </Link>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="hidden sm:block">
+                <Link
+                  to="/login"
+                  className="bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors inline-block"
+                >
+                  Login
+                </Link>
+              </motion.div>
             )}
+
+            {/* Mobile menu toggle */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setMenuOpen((o) => !o)}
+              className="md:hidden text-gray-600"
+              aria-label="Toggle menu"
+            >
+              <motion.svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                animate={menuOpen ? 'open' : 'closed'}
+              >
+                <motion.path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  variants={{
+                    closed: { d: 'M4 6h16M4 12h16M4 18h16' },
+                    open: { d: 'M6 18L18 6M6 6l12 12' },
+                  }}
+                />
+              </motion.svg>
+            </motion.button>
           </div>
         </div>
       </div>
-    </nav>
+
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="md:hidden overflow-hidden border-t border-gray-100"
+          >
+            <div className="px-4 py-4 flex flex-col gap-1">
+              {NAV_LINKS.map((link, i) => (
+                <motion.div
+                  key={link.to}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <NavLink
+                    to={link.to}
+                    end={link.end}
+                    onClick={() => setMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `block py-2.5 px-2 rounded-lg font-medium text-sm ${
+                        isActive ? 'text-pink-500 bg-pink-50' : 'text-gray-700'
+                      }`
+                    }
+                  >
+                    {link.label}
+                  </NavLink>
+                </motion.div>
+              ))}
+              <div className="border-t border-gray-100 mt-2 pt-3">
+                {user ? (
+                  <button
+                    onClick={() => { setMenuOpen(false); handleLogout(); }}
+                    className="w-full text-left py-2.5 px-2 text-sm font-medium text-pink-500"
+                  >
+                    Logout
+                  </button>
+                ) : (
+                  <Link
+                    to="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="block py-2.5 px-2 text-sm font-medium text-pink-500"
+                  >
+                    Login
+                  </Link>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.nav>
   );
 }
