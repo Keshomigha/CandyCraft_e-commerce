@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { staggerContainer, listItem } from '../../utils/motionVariants';
 
 const STATUS_STYLES = {
   pending:    'bg-amber-100 text-amber-700',
@@ -52,54 +54,56 @@ export default function SellerOrderTable({ orders, onUpdateStatus, apiUrl }) {
             <th className="text-right px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Action</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
-          {orders.map((o, idx) => {
-            const nextOptions = NEXT_STATUSES[o.order_status] || [];
-            return (
-              <tr key={idx} className="hover:bg-gray-50/60 transition-colors">
-                <td className="px-6 py-3">
-                  <span className="text-sm font-semibold text-gray-800">#{o.order_id}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm text-gray-700 truncate block max-w-[200px]">{o.name}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-xs text-gray-500">{fmt(o.order_date)}</span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <span className="text-sm text-gray-700">{o.quantity}</span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <span className="text-sm font-semibold text-gray-800">
-                    LKR {Number(o.price * o.quantity).toLocaleString()}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize ${STATUS_STYLES[o.order_status] || 'bg-gray-100 text-gray-600'}`}>
-                    {o.order_status}
-                  </span>
-                </td>
-                <td className="px-6 py-3 text-right">
-                  {nextOptions.length > 0 ? (
-                    <select
-                      disabled={updating === o.order_id}
-                      onChange={e => handleStatus(o.order_id, e.target.value)}
-                      value=""
-                      className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#F4A261] bg-white text-gray-600 cursor-pointer"
-                    >
-                      <option value="" disabled>Update →</option>
-                      {nextOptions.map(s => (
-                        <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="text-xs text-gray-300">—</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
+        <motion.tbody variants={staggerContainer} initial="hidden" animate="visible" className="divide-y divide-gray-50">
+          <AnimatePresence initial={false}>
+            {orders.map((o, idx) => {
+              const nextOptions = NEXT_STATUSES[o.order_status] || [];
+              return (
+                <motion.tr key={idx} layout variants={listItem} exit="exit" className="hover:bg-gray-50/60 transition-colors">
+                  <td className="px-6 py-3">
+                    <span className="text-sm font-semibold text-gray-800">#{o.order_id}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm text-gray-700 truncate block max-w-[200px]">{o.name}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-xs text-gray-500">{fmt(o.order_date)}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className="text-sm text-gray-700">{o.quantity}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className="text-sm font-semibold text-gray-800">
+                      LKR {Number(o.price * o.quantity).toLocaleString()}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize ${STATUS_STYLES[o.order_status] || 'bg-gray-100 text-gray-600'}`}>
+                      {o.order_status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-right">
+                    {nextOptions.length > 0 ? (
+                      <select
+                        disabled={updating === o.order_id}
+                        onChange={e => handleStatus(o.order_id, e.target.value)}
+                        value=""
+                        className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#F4A261] bg-white text-gray-600 cursor-pointer"
+                      >
+                        <option value="" disabled>Update →</option>
+                        {nextOptions.map(s => (
+                          <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
+                  </td>
+                </motion.tr>
+              );
+            })}
+          </AnimatePresence>
+        </motion.tbody>
       </table>
     </div>
   );
