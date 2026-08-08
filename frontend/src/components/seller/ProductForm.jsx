@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 
 const CATEGORIES = [
   'Bouquets', 'Boxes', 'Baskets', 'Cakes', 'Custom', 'Chocolates',
@@ -43,10 +44,17 @@ export default function ProductForm({ initial = {}, onSubmit, saving }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Image Upload */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+      >
         <h2 className="font-bold text-gray-800 mb-4">Product Image</h2>
         <div className="flex items-start gap-5">
-          <div
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => fileRef.current?.click()}
             className="w-32 h-32 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-[#F4A261] hover:bg-orange-50/30 transition-colors overflow-hidden flex-shrink-0"
           >
@@ -61,7 +69,7 @@ export default function ProductForm({ initial = {}, onSubmit, saving }) {
                 <p className="text-[10px] text-gray-400">Click to upload</p>
               </div>
             )}
-          </div>
+          </motion.div>
           <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
           <div className="text-xs text-gray-400 pt-2">
             <p>Upload a product image.</p>
@@ -77,10 +85,15 @@ export default function ProductForm({ initial = {}, onSubmit, saving }) {
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Product Details */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.08 }}
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4"
+      >
         <h2 className="font-bold text-gray-800 mb-1">Product Details</h2>
 
         <div>
@@ -129,18 +142,25 @@ export default function ProductForm({ initial = {}, onSubmit, saving }) {
             </select>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Submit */}
-      <div className="flex items-center gap-3">
-        <button
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.16 }}
+        className="flex items-center gap-3"
+      >
+        <motion.button
+          whileHover={{ scale: saving ? 1 : 1.03 }}
+          whileTap={{ scale: saving ? 1 : 0.97 }}
           type="submit"
           disabled={saving}
           className="flex items-center gap-2 bg-gradient-to-r from-[#F4A261] to-[#E76F51] text-white font-semibold px-7 py-3 rounded-full hover:shadow-lg hover:shadow-orange-200/50 transition-all disabled:opacity-60 text-sm"
         >
           {saving ? 'Saving…' : initial.id ? 'Update Product' : 'Create Product'}
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
     </form>
   );
 }
