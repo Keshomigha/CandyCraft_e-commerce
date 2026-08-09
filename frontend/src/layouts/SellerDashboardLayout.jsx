@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import useAuth from '../hooks/useAuth';
 
 const NAV = [
@@ -96,12 +97,17 @@ export default function SellerDashboardLayout() {
     <div className="min-h-screen bg-[#F5F0EB] flex">
 
       {/* ── Mobile overlay ── */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── Sidebar ── */}
       <aside
@@ -115,7 +121,7 @@ export default function SellerDashboardLayout() {
         {/* Logo */}
         <div className="px-5 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-2xl">🍬</span>
+            <motion.span className="text-2xl" whileHover={{ rotate: [0, -12, 12, 0], scale: 1.1 }} transition={{ duration: 0.4 }}>🍬</motion.span>
             <span className="font-extrabold text-lg tracking-tight">
               <span className="text-[#F4A261]">Candy</span>
               <span className="text-gray-800">Craft</span>
@@ -133,17 +139,24 @@ export default function SellerDashboardLayout() {
               end={to === '/seller/products'}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                `relative isolate flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150
                 ${isActive
-                  ? 'bg-gradient-to-r from-[#F4A261] to-[#E76F51] text-white shadow-md shadow-orange-200/50'
+                  ? 'text-white'
                   : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <span className={isActive ? 'text-white' : 'text-gray-400'}>{icon}</span>
-                  {label}
+                  {isActive && (
+                    <motion.span
+                      layoutId="seller-nav-pill"
+                      className="absolute inset-0 z-0 bg-gradient-to-r from-[#F4A261] to-[#E76F51] rounded-xl shadow-md shadow-orange-200/50"
+                      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                    />
+                  )}
+                  <span className={`relative z-10 ${isActive ? 'text-white' : 'text-gray-400'}`}>{icon}</span>
+                  <span className="relative z-10">{label}</span>
                 </>
               )}
             </NavLink>
@@ -152,16 +165,18 @@ export default function SellerDashboardLayout() {
 
         {/* Logout */}
         <div className="px-3 pb-5 border-t border-gray-100 pt-4">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-medium text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-medium text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors duration-150"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             Logout
-          </button>
+          </motion.button>
         </div>
       </aside>
 
@@ -169,14 +184,15 @@ export default function SellerDashboardLayout() {
       <div className="flex-1 min-h-screen flex flex-col min-w-0">
         {/* Mobile top bar */}
         <header className="lg:hidden sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
-          </button>
+          </motion.button>
           <span className="font-extrabold text-base">
             <span className="text-[#F4A261]">Candy</span>
             <span className="text-gray-800">Craft</span>
