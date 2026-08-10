@@ -12,6 +12,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 const { getApprovedSellers } = require('./models/userModel');
 
@@ -44,6 +45,52 @@ const { getApprovedSellers } = require('./models/userModel');
         UNIQUE(user_id, product_id)
       )
     `);
+
+    const statusCol = await pool.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name='users' AND column_name='status'
+    `);
+    if (statusCol.rows.length === 0) {
+      console.log('Adding status column to users table...');
+      await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active'
+        CHECK (status IN ('active', 'suspended'))
+      `);
+      console.log('Status column added to users table.');
+    }
+
+    await pool.query(`ALTER TABLE sellers DROP CONSTRAINT IF EXISTS sellers_status_check`);
+    await pool.query(`
+      ALTER TABLE sellers ADD CONSTRAINT sellers_status_check
+      CHECK (status IN ('pending', 'approved', 'rejected', 'suspended'))
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS reports (
+        id SERIAL PRIMARY KEY,
+        reporter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        target_type VARCHAR(20) NOT NULL CHECK (target_type IN ('product', 'user')),
+        target_id INTEGER NOT NULL,
+        reason VARCHAR(30) NOT NULL CHECK (reason IN ('scam', 'inappropriate', 'spam', 'prohibited', 'other')),
+        details TEXT,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'dismissed', 'actioned')),
+        priority BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_warnings (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        message TEXT,
+        issued_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
     console.log('Database tables verified successfully.');
   } catch (err) {
     console.error('Error verifying database schema on startup:', err);
@@ -97,6 +144,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.use(errorHandler);
 
