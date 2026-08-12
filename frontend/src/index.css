@@ -47,3 +47,13 @@ html, body {
   font-size: 17px;
   background-color: #F5F0EB;
 }
+
+/* Hides the scrollbar on horizontally-scrolling chip/tab strips so a
+   spring-animated active-tab pill can't cause it to flicker in and out. */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
