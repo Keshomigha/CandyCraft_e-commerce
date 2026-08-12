@@ -70,6 +70,10 @@ async function login(req, res, next) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    if (user.status === 'suspended') {
+      return res.status(403).json({ message: 'Your account has been suspended. Contact support.' });
+    }
+
     const token = generateToken(user);
 
     res.json({
