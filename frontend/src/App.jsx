@@ -11,6 +11,9 @@ import BuyerDashboardLayout from './layouts/BuyerDashboardLayout';
 // Seller panel layout
 import SellerDashboardLayout from './layouts/SellerDashboardLayout';
 
+// Admin panel layout
+import AdminDashboardLayout from './layouts/AdminDashboardLayout';
+
 // Public pages
 import Home from './pages/buyer/Home';
 import ProductListing from './pages/buyer/ProductListing';
@@ -35,6 +38,16 @@ import SellerOrders from './pages/seller/SellerOrders';
 import SellerReviews from './pages/seller/SellerReviews';
 import SalesEarnings from './pages/seller/SalesEarnings';
 import SellerProfile from './pages/seller/SellerProfile';
+
+// Admin panel pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ManageUsers from './pages/admin/ManageUsers';
+import ManageSellers from './pages/admin/ManageSellers';
+import AdminManageProducts from './pages/admin/ManageProducts';
+import MonitorOrders from './pages/admin/MonitorOrders';
+import ModerateReviews from './pages/admin/ModerateReviews';
+import PlatformReports from './pages/admin/PlatformReports';
+import ReportQueue from './pages/admin/ReportQueue';
 
 // Protected route guard
 function RequireAuth({ children, role }) {
@@ -95,6 +108,26 @@ function App() {
             <Route path="reviews"            element={<SellerReviews />} />
             <Route path="earnings"           element={<SalesEarnings />} />
             <Route path="profile"            element={<SellerProfile />} />
+          </Route>
+
+          {/* Admin panel routes */}
+          <Route
+            path="/admin"
+            element={
+              <RequireAuth role="admin">
+                <AdminDashboardLayout />
+              </RequireAuth>
+            }
+          >
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users"     element={<ManageUsers />} />
+            <Route path="sellers"   element={<ManageSellers />} />
+            <Route path="products"  element={<AdminManageProducts />} />
+            <Route path="orders"    element={<MonitorOrders />} />
+            <Route path="reviews"       element={<ModerateReviews />} />
+            <Route path="report-queue"  element={<ReportQueue />} />
+            <Route path="reports"       element={<PlatformReports />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
