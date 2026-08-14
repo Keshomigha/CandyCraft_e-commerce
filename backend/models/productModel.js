@@ -11,23 +11,23 @@ async function createProduct(sellerId, { name, description, price, stock, catego
 }
 
 async function getProducts({ category, search, limit = 20, offset = 0 } = {}) {
-  const conditions = [`status = 'approved'`];
+  const conditions = [`p.status = 'approved'`];
   const params = [];
 
   if (category) {
     params.push(category);
-    conditions.push(`category = $${params.length}`);
+    conditions.push(`p.category = $${params.length}`);
   }
 
   if (search) {
     params.push(`%${search}%`);
-    conditions.push(`name ILIKE $${params.length}`);
+    conditions.push(`p.name ILIKE $${params.length}`);
   }
 
   const where = conditions.join(' AND ');
 
   const countResult = await pool.query(
-    `SELECT COUNT(*) FROM products WHERE ${where}`,
+    `SELECT COUNT(*) FROM products p WHERE ${where}`,
     params
   );
   const total = parseInt(countResult.rows[0].count, 10);
@@ -36,9 +36,11 @@ async function getProducts({ category, search, limit = 20, offset = 0 } = {}) {
   params.push(offset);
 
   const result = await pool.query(
-    `SELECT * FROM products
+    `SELECT p.*, s.shop_name
+     FROM products p
+     JOIN sellers s ON s.id = p.seller_id
      WHERE ${where}
-     ORDER BY created_at DESC
+     ORDER BY p.created_at DESC
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );
@@ -47,7 +49,13 @@ async function getProducts({ category, search, limit = 20, offset = 0 } = {}) {
 }
 
 async function getProductById(id) {
-  const result = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+  const result = await pool.query(
+    `SELECT p.*, s.shop_name
+     FROM products p
+     JOIN sellers s ON s.id = p.seller_id
+     WHERE p.id = $1`,
+    [id]
+  );
   return result.rows[0];
 }
 
@@ -113,6 +121,14 @@ async function updateProductStatus(id, status) {
   return result.rows[0];
 }
 
+async function deleteProductAdmin(id) {
+  const result = await pool.query(
+    'DELETE FROM products WHERE id = $1 RETURNING *',
+    [id]
+  );
+  return result.rows[0];
+}
+
 module.exports = {
   createProduct,
   getProducts,
@@ -122,4 +138,5 @@ module.exports = {
   deleteProduct,
   getAllProductsAdmin,
   updateProductStatus,
+  deleteProductAdmin,
 };
