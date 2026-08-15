@@ -91,6 +91,44 @@ const { getApprovedSellers } = require('./models/userModel');
       )
     `);
 
+    const customizableCol = await pool.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name='products' AND column_name='customizable'
+    `);
+    if (customizableCol.rows.length === 0) {
+      console.log('Adding custom order columns to products table...');
+      await pool.query(`
+        ALTER TABLE products
+        ADD COLUMN customizable BOOLEAN NOT NULL DEFAULT false,
+        ADD COLUMN customization_options JSONB NOT NULL DEFAULT '[]',
+        ADD COLUMN customization_fee NUMERIC(10, 2) NOT NULL DEFAULT 0
+      `);
+      console.log('Custom order columns added to products table.');
+    }
+
+    const cartCustomizationCol = await pool.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name='cart_items' AND column_name='customization'
+    `);
+    if (cartCustomizationCol.rows.length === 0) {
+      console.log('Adding customization column to cart_items table...');
+      await pool.query(`ALTER TABLE cart_items ADD COLUMN customization JSONB`);
+      console.log('Customization column added to cart_items table.');
+    }
+
+    const orderItemCustomizationCol = await pool.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name='order_items' AND column_name='customization'
+    `);
+    if (orderItemCustomizationCol.rows.length === 0) {
+      console.log('Adding customization column to order_items table...');
+      await pool.query(`ALTER TABLE order_items ADD COLUMN customization JSONB`);
+      console.log('Customization column added to order_items table.');
+    }
+
     console.log('Database tables verified successfully.');
   } catch (err) {
     console.error('Error verifying database schema on startup:', err);
