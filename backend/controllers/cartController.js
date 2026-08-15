@@ -18,7 +18,7 @@ async function viewCart(req, res, next) {
 
 async function addItem(req, res, next) {
   try {
-    const { productId, quantity } = req.body;
+    const { productId, quantity, customization } = req.body;
     if (!productId || !quantity || quantity < 1) {
       return res.status(400).json({ message: 'productId and a positive quantity are required' });
     }
@@ -28,7 +28,11 @@ async function addItem(req, res, next) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    const item = await addOrUpdateCartItem(req.user.id, productId, quantity);
+    const customizationPayload = customization
+      ? { ...customization, fee: product.customizable ? Number(product.customization_fee) : 0 }
+      : null;
+
+    const item = await addOrUpdateCartItem(req.user.id, productId, quantity, customizationPayload);
     res.status(201).json(item);
   } catch (err) {
     next(err);
