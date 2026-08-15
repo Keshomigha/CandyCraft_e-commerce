@@ -2,7 +2,7 @@ const pool = require('../config/db');
 
 async function getCartByUser(userId) {
   const result = await pool.query(
-    `SELECT c.id, c.product_id, c.quantity, p.name, p.price, p.image_url, p.stock
+    `SELECT c.id, c.product_id, c.quantity, c.customization, p.name, p.price, p.image_url, p.stock
      FROM cart_items c
      JOIN products p ON p.id = c.product_id
      WHERE c.user_id = $1
@@ -12,14 +12,15 @@ async function getCartByUser(userId) {
   return result.rows;
 }
 
-async function addOrUpdateCartItem(userId, productId, quantity) {
+async function addOrUpdateCartItem(userId, productId, quantity, customization = null) {
   const result = await pool.query(
-    `INSERT INTO cart_items (user_id, product_id, quantity)
-     VALUES ($1, $2, $3)
+    `INSERT INTO cart_items (user_id, product_id, quantity, customization)
+     VALUES ($1, $2, $3, $4)
      ON CONFLICT (user_id, product_id)
-     DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity
+     DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity,
+                   customization = COALESCE(EXCLUDED.customization, cart_items.customization)
      RETURNING *`,
-    [userId, productId, quantity]
+    [userId, productId, quantity, customization ? JSON.stringify(customization) : null]
   );
   return result.rows[0];
 }
