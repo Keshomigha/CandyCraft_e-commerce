@@ -17,6 +17,7 @@ import AdminDashboardLayout from './layouts/AdminDashboardLayout';
 // Public pages
 import Home from './pages/buyer/Home';
 import ProductListing from './pages/buyer/ProductListing';
+import ProductDetails from './pages/buyer/ProductDetails';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Login from './pages/auth/Login';
@@ -26,6 +27,7 @@ import NotFound from './pages/NotFound';
 // Buyer panel pages
 import BuyerDashboard from './pages/buyer/BuyerDashboard';
 import MyOrders from './pages/buyer/MyOrders';
+import OrderDetails from './pages/buyer/OrderDetails';
 import Wishlist from './pages/buyer/Wishlist';
 import MyReviews from './pages/buyer/MyReviews';
 import Profile from './pages/buyer/Profile';
@@ -66,6 +68,7 @@ function App() {
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Home />} />
             <Route path="products" element={<ProductListing />} />
+            <Route path="products/:id" element={<ProductDetails />} />
             <Route path="about" element={<About />} />
             <Route path="contact" element={<Contact />} />
           </Route>
@@ -85,6 +88,7 @@ function App() {
             <Route index element={<Navigate to="/buyer/dashboard" replace />} />
             <Route path="dashboard" element={<BuyerDashboard />} />
             <Route path="orders"    element={<MyOrders />} />
+            <Route path="orders/:id" element={<OrderDetails />} />
             <Route path="wishlist"  element={<Wishlist />} />
             <Route path="reviews"   element={<MyReviews />} />
             <Route path="profile"   element={<Profile />} />
