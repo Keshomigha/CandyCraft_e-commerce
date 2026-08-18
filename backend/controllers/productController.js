@@ -42,6 +42,16 @@ function parseCustomizationOptions(raw) {
   }
 }
 
+function parseCustomizationSettings(raw) {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 async function addProduct(req, res, next) {
   try {
     const seller = await findSellerByUserId(req.user.id);
@@ -49,7 +59,10 @@ async function addProduct(req, res, next) {
       return res.status(403).json({ message: 'Seller profile not found' });
     }
 
-    const { name, description, price, stock, category, customizable, customizationOptions, customizationFee } = req.body;
+    const {
+      name, description, price, stock, category,
+      customizable, customizationOptions, customizationFee, customizationSettings,
+    } = req.body;
     if (!name || !price) {
       return res.status(400).json({ message: 'Name and price are required' });
     }
@@ -66,6 +79,7 @@ async function addProduct(req, res, next) {
       customizable: customizable === 'true' || customizable === true,
       customizationOptions: parseCustomizationOptions(customizationOptions),
       customizationFee: customizationFee ? Number(customizationFee) : 0,
+      customizationSettings: parseCustomizationSettings(customizationSettings),
     });
 
     res.status(201).json(product);
@@ -109,6 +123,10 @@ async function editProduct(req, res, next) {
     if (fields.customizationFee !== undefined) {
       fields.customization_fee = Number(fields.customizationFee) || 0;
       delete fields.customizationFee;
+    }
+    if (fields.customizationSettings !== undefined) {
+      fields.customization_settings = parseCustomizationSettings(fields.customizationSettings);
+      delete fields.customizationSettings;
     }
 
     const product = await updateProduct(req.params.id, seller.id, fields);
