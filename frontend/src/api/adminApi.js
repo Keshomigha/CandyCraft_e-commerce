@@ -2,6 +2,7 @@ import api from './axiosInstance';
 
 // Platform stats
 export const getPlatformStats = () => api.get('/api/admin/stats');
+export const getDashboardOverview = () => api.get('/api/admin/dashboard-overview');
 
 // Users
 export const getAllUsers      = () => api.get('/api/admin/users');
