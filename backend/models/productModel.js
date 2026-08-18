@@ -1,11 +1,19 @@
 const pool = require('../config/db');
 
-async function createProduct(sellerId, { name, description, price, stock, category, imageUrl }) {
+async function createProduct(sellerId, {
+  name, description, price, stock, category, imageUrl,
+  customizable = false, customizationOptions = [], customizationFee = 0, customizationSettings = {},
+}) {
   const result = await pool.query(
-    `INSERT INTO products (seller_id, name, description, price, stock, category, image_url)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO products
+       (seller_id, name, description, price, stock, category, image_url,
+        customizable, customization_options, customization_fee, customization_settings)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING *`,
-    [sellerId, name, description, price, stock, category, imageUrl]
+    [
+      sellerId, name, description, price, stock, category, imageUrl,
+      customizable, JSON.stringify(customizationOptions), customizationFee, JSON.stringify(customizationSettings),
+    ]
   );
   return result.rows[0];
 }
@@ -68,13 +76,17 @@ async function getProductsBySeller(sellerId) {
 }
 
 async function updateProduct(id, sellerId, fields) {
-  const allowed = ['name', 'description', 'price', 'stock', 'category', 'image_url'];
+  const allowed = [
+    'name', 'description', 'price', 'stock', 'category', 'image_url',
+    'customizable', 'customization_options', 'customization_fee', 'customization_settings',
+  ];
+  const jsonFields = ['customization_options', 'customization_settings'];
   const updates = [];
   const params = [];
 
   for (const [key, value] of Object.entries(fields)) {
     if (allowed.includes(key) && value !== undefined) {
-      params.push(value);
+      params.push(jsonFields.includes(key) ? JSON.stringify(value) : value);
       updates.push(`${key} = $${params.length}`);
     }
   }
