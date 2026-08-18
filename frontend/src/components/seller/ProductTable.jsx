@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { staggerContainer, listItem } from '../../utils/motionVariants';
+import { staggerContainer, tableRow } from '../../utils/motionVariants';
 
 const STATUS_STYLES = {
   approved: 'bg-green-100 text-green-700',
@@ -38,12 +38,12 @@ export default function ProductTable({ products, onEdit, onDelete, apiUrl }) {
         >
           <AnimatePresence initial={false}>
             {products.map(p => (
-              <motion.tr key={p.id} layout variants={listItem} exit="exit" className="hover:bg-gray-50/60 transition-colors group">
+              <motion.tr key={p.id} variants={tableRow} exit="exit" className="hover:bg-gray-50/60 transition-colors group">
                 <td className="px-6 py-3">
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {p.image_url ? (
-                        <img src={`${apiUrl}${p.image_url}`} alt="" className="w-full h-full object-cover" />
+                        <img src={`${apiUrl}${p.image_url}`} alt="" className="w-full h-full object-contain p-1" />
                       ) : (
                         <span className="text-lg">🍬</span>
                       )}
