@@ -7,7 +7,7 @@ async function placeOrder(userId, shippingAddress) {
     await client.query('BEGIN');
 
     const cartResult = await client.query(
-      `SELECT c.product_id, c.quantity, p.price, p.stock, p.seller_id, p.name
+      `SELECT c.product_id, c.quantity, c.customization, p.price, p.stock, p.seller_id, p.name
        FROM cart_items c
        JOIN products p ON p.id = c.product_id
        WHERE c.user_id = $1
@@ -29,7 +29,10 @@ async function placeOrder(userId, shippingAddress) {
       }
     }
 
-    const totalAmount = cartItems.reduce((sum, item) => sum + item.quantity * Number(item.price), 0);
+    const totalAmount = cartItems.reduce((sum, item) => {
+      const fee = item.customization?.fee ? Number(item.customization.fee) : 0;
+      return sum + item.quantity * Number(item.price) + fee;
+    }, 0);
 
     const orderResult = await client.query(
       `INSERT INTO orders (user_id, total_amount, shipping_address, status)
@@ -41,9 +44,12 @@ async function placeOrder(userId, shippingAddress) {
 
     for (const item of cartItems) {
       await client.query(
-        `INSERT INTO order_items (order_id, product_id, seller_id, quantity, price)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [order.id, item.product_id, item.seller_id, item.quantity, item.price]
+        `INSERT INTO order_items (order_id, product_id, seller_id, quantity, price, customization)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          order.id, item.product_id, item.seller_id, item.quantity, item.price,
+          item.customization ? JSON.stringify(item.customization) : null,
+        ]
       );
 
       await client.query(
