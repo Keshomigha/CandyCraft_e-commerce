@@ -296,6 +296,126 @@ async function getStats(req, res, next) {
   }
 }
 
+// Every figure below is a real, live query against actual rows — no
+// placeholder/sample data. Trends are "new since 7 days ago" counts;
+// health rates are computed only from decided/concluded records so a
+// pile of still-pending applications doesn't skew them.
+async function getDashboardOverview(req, res, next) {
+  try {
+    const [
+      userCount, sellerCount, productCount, orderCount, revenue,
+      newUsers, newSellers, newProducts, newOrders,
+      sellerStatusCounts, productStatusCounts, orderStatusCounts,
+      recentOrders, recentSellers, recentReports, recentUsers, recentProducts,
+      pendingSellers, pendingProducts, pendingReports, priorityReports,
+    ] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM users'),
+      pool.query('SELECT COUNT(*) FROM sellers'),
+      pool.query('SELECT COUNT(*) FROM products'),
+      pool.query('SELECT COUNT(*) FROM orders'),
+      pool.query(`SELECT COALESCE(SUM(total_amount), 0) AS total FROM orders WHERE status != 'cancelled'`),
+
+      pool.query(`SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      pool.query(`SELECT COUNT(*) FROM sellers WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      pool.query(`SELECT COUNT(*) FROM products WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      pool.query(`SELECT COUNT(*) FROM orders WHERE created_at >= NOW() - INTERVAL '7 days'`),
+
+      pool.query(`SELECT status, COUNT(*) FROM sellers GROUP BY status`),
+      pool.query(`SELECT status, COUNT(*) FROM products GROUP BY status`),
+      pool.query(`SELECT status, COUNT(*) FROM orders GROUP BY status`),
+
+      pool.query(`
+        SELECT o.id, o.total_amount, o.created_at, u.name AS actor_name
+        FROM orders o JOIN users u ON u.id = o.user_id
+        ORDER BY o.created_at DESC LIMIT 5
+      `),
+      pool.query(`
+        SELECT s.id, s.shop_name, s.created_at, u.name AS actor_name
+        FROM sellers s JOIN users u ON u.id = s.user_id
+        ORDER BY s.created_at DESC LIMIT 5
+      `),
+      pool.query(`
+        SELECT r.id, r.reason, r.target_type, r.created_at, reporter.name AS actor_name
+        FROM reports r JOIN users reporter ON reporter.id = r.reporter_id
+        ORDER BY r.created_at DESC LIMIT 5
+      `),
+      pool.query(`SELECT id, name, role, created_at FROM users ORDER BY created_at DESC LIMIT 5`),
+      pool.query(`
+        SELECT p.id, p.name, p.created_at, s.shop_name
+        FROM products p JOIN sellers s ON s.id = p.seller_id
+        ORDER BY p.created_at DESC LIMIT 5
+      `),
+
+      pool.query(`SELECT COUNT(*) FROM sellers WHERE status = 'pending'`),
+      pool.query(`SELECT COUNT(*) FROM products WHERE status = 'pending'`),
+      pool.query(`SELECT COUNT(*) FROM reports WHERE status = 'pending'`),
+      pool.query(`SELECT COUNT(*) FROM reports WHERE status = 'pending' AND priority = true`),
+    ]);
+
+    const countBy = (rows) => rows.reduce((acc, r) => ({ ...acc, [r.status]: Number(r.count) }), {});
+    const sellersByStatus = countBy(sellerStatusCounts.rows);
+    const productsByStatus = countBy(productStatusCounts.rows);
+    const ordersByStatus = countBy(orderStatusCounts.rows);
+
+    const rate = (num, den) => (den > 0 ? Math.round((num / den) * 1000) / 10 : null);
+
+    const activity = [
+      ...recentOrders.rows.map((o) => ({
+        type: 'order', id: o.id, created_at: o.created_at,
+        actorName: o.actor_name, amount: Number(o.total_amount),
+      })),
+      ...recentSellers.rows.map((s) => ({
+        type: 'seller', id: s.id, created_at: s.created_at,
+        actorName: s.actor_name, shopName: s.shop_name,
+      })),
+      ...recentReports.rows.map((r) => ({
+        type: 'report', id: r.id, created_at: r.created_at,
+        actorName: r.actor_name, reason: r.reason, targetType: r.target_type,
+      })),
+      ...recentUsers.rows.map((u) => ({
+        type: 'user', id: u.id, created_at: u.created_at,
+        actorName: u.name, role: u.role,
+      })),
+      ...recentProducts.rows.map((p) => ({
+        type: 'product', id: p.id, created_at: p.created_at,
+        productName: p.name, shopName: p.shop_name,
+      })),
+    ]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 8);
+
+    res.json({
+      stats: {
+        totalUsers: Number(userCount.rows[0].count),
+        totalSellers: Number(sellerCount.rows[0].count),
+        totalProducts: Number(productCount.rows[0].count),
+        totalOrders: Number(orderCount.rows[0].count),
+        totalRevenue: Number(revenue.rows[0].total),
+      },
+      trends: {
+        newUsers7d: Number(newUsers.rows[0].count),
+        newSellers7d: Number(newSellers.rows[0].count),
+        newProducts7d: Number(newProducts.rows[0].count),
+        newOrders7d: Number(newOrders.rows[0].count),
+      },
+      quickActions: {
+        pendingSellers: Number(pendingSellers.rows[0].count),
+        pendingProducts: Number(pendingProducts.rows[0].count),
+        pendingReports: Number(pendingReports.rows[0].count),
+        priorityReports: Number(priorityReports.rows[0].count),
+      },
+      health: {
+        orderSuccessRate: rate(ordersByStatus.delivered || 0, (ordersByStatus.delivered || 0) + (ordersByStatus.cancelled || 0)),
+        sellerApprovalRate: rate(sellersByStatus.approved || 0, (sellersByStatus.approved || 0) + (sellersByStatus.rejected || 0)),
+        productApprovalRate: rate(productsByStatus.approved || 0, (productsByStatus.approved || 0) + (productsByStatus.rejected || 0)),
+      },
+      activity,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listUsers,
   setUserStatus,
@@ -313,4 +433,5 @@ module.exports = {
   listReports,
   resolveReport,
   getStats,
+  getDashboardOverview,
 };
