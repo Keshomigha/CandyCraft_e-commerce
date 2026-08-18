@@ -13,6 +13,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 const { getApprovedSellers } = require('./models/userModel');
 
@@ -107,6 +108,17 @@ const { getApprovedSellers } = require('./models/userModel');
       console.log('Custom order columns added to products table.');
     }
 
+    const customizationSettingsCol = await pool.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name='products' AND column_name='customization_settings'
+    `);
+    if (customizationSettingsCol.rows.length === 0) {
+      console.log('Adding customization_settings column to products table...');
+      await pool.query(`ALTER TABLE products ADD COLUMN customization_settings JSONB NOT NULL DEFAULT '{}'`);
+      console.log('customization_settings column added to products table.');
+    }
+
     const cartCustomizationCol = await pool.query(`
       SELECT column_name
       FROM information_schema.columns
@@ -183,6 +195,7 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 app.use(errorHandler);
 
