@@ -1,3 +1,4 @@
+
 const pool = require('../config/db');
 
 const VALID_TARGET_TYPES = ['product', 'user'];
