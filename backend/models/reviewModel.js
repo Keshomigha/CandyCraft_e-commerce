@@ -74,6 +74,14 @@ async function updateReviewStatus(id, status) {
   return result.rows[0];
 }
 
+async function deleteReviewAdmin(id) {
+  const result = await pool.query(
+    'DELETE FROM reviews WHERE id = $1 RETURNING *',
+    [id]
+  );
+  return result.rows[0];
+}
+
 async function getReviewsByUser(userId) {
   const result = await pool.query(
     `SELECT r.id, r.rating, r.comment, r.created_at, p.id AS product_id, p.name AS product_name, p.image_url AS product_image
@@ -108,6 +116,7 @@ module.exports = {
   getReviewsBySeller,
   getAllReviewsAdmin,
   updateReviewStatus,
+  deleteReviewAdmin,
   getReviewsByUser,
   getPendingReviewsByUser,
 };
