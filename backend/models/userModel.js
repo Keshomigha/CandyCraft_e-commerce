@@ -40,7 +40,7 @@ async function createSellerProfile(userId, shopName, description) {
 
 async function getApprovedSellers() {
   const result = await pool.query(
-    `SELECT s.id, s.shop_name, s.description, u.name,
+    `SELECT s.id, s.user_id, s.shop_name, s.description, u.name,
             COUNT(DISTINCT p.id) AS product_count
      FROM sellers s
      JOIN users u ON u.id = s.user_id
@@ -55,9 +55,25 @@ async function getApprovedSellers() {
 
 async function getAllUsers() {
   const result = await pool.query(
-    'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
+    'SELECT id, name, email, role, status, created_at FROM users ORDER BY created_at DESC'
   );
   return result.rows;
+}
+
+async function updateUserStatus(id, status) {
+  const result = await pool.query(
+    'UPDATE users SET status = $1 WHERE id = $2 RETURNING id, name, email, role, status, created_at',
+    [status, id]
+  );
+  return result.rows[0];
+}
+
+async function deleteUserById(id) {
+  const result = await pool.query(
+    'DELETE FROM users WHERE id = $1 RETURNING id, name, email, role',
+    [id]
+  );
+  return result.rows[0];
 }
 
 async function getAllSellers() {
@@ -89,4 +105,6 @@ module.exports = {
   getAllUsers,
   getAllSellers,
   updateSellerStatus,
+  updateUserStatus,
+  deleteUserById,
 };
