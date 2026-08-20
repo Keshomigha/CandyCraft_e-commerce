@@ -16,6 +16,7 @@ const {
   listReports,
   resolveReport,
   getStats,
+  getDashboardOverview,
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { restrictTo } = require('../middleware/roleMiddleware');
@@ -25,6 +26,7 @@ const router = express.Router();
 router.use(protect, restrictTo('admin'));
 
 router.get('/stats', getStats);
+router.get('/dashboard-overview', getDashboardOverview);
 
 router.get('/users', listUsers);
 router.patch('/users/:id/status', setUserStatus);
