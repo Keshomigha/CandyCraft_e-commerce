@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   listProducts,
+  getSuggestions,
   getProduct,
   addProduct,
   getMyProducts,
@@ -14,6 +15,7 @@ const upload = require('../middleware/uploadMiddleware');
 const router = express.Router();
 
 router.get('/', listProducts);
+router.get('/suggestions', getSuggestions);
 router.get('/mine', protect, restrictTo('seller'), getMyProducts);
 router.get('/:id', getProduct);
 
