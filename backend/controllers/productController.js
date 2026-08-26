@@ -2,19 +2,76 @@ const {
   createProduct,
   getProducts,
   getProductById,
+  getSearchSuggestions,
   getProductsBySeller,
   updateProduct,
   deleteProduct,
 } = require('../models/productModel');
 const { findSellerByUserId } = require('../models/userModel');
+const { logSearch, getPopularSearches } = require('../models/searchLogModel');
+const pool = require('../config/db');
+
+const VALID_SORTS = ['relevance', 'newest', 'price_asc', 'price_desc', 'rating'];
 
 async function listProducts(req, res, next) {
   try {
-    const { category, search, page = 1, limit = 20 } = req.query;
+    const {
+      category, search, minPrice, maxPrice, sellerId, minRating, inStock,
+      sort = 'relevance', page = 1, limit = 20,
+    } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
-    const { rows: products, total } = await getProducts({ category, search, limit: Number(limit), offset });
+    const { rows: products, total } = await getProducts({
+      category,
+      search,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      sellerId: sellerId ? Number(sellerId) : undefined,
+      minRating: minRating ? Number(minRating) : undefined,
+      inStockOnly: inStock === 'true',
+      sort: VALID_SORTS.includes(sort) ? sort : 'relevance',
+      limit: Number(limit),
+      offset,
+    });
+
+    // A "search" query represents a real, executed search (not every
+    // keystroke) — logging it here is what powers real "popular searches"
+    // for the search bar, with no hardcoded/sample trending terms.
+    if (search && search.trim()) {
+      logSearch(search, req.user?.id).catch(() => {});
+    }
+
     res.json({ products, total });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getSuggestions(req, res, next) {
+  try {
+    const q = (req.query.q || '').trim();
+
+    if (q.length < 2) {
+      const popularSearches = await getPopularSearches(6);
+      return res.json({ products: [], shops: [], categories: [], popularSearches });
+    }
+
+    const [{ products, shops }, popularSearches, categoryRows] = await Promise.all([
+      getSearchSuggestions(q),
+      getPopularSearches(6),
+      pool.query(
+        `SELECT DISTINCT category FROM products
+         WHERE status = 'approved' AND category ILIKE $1
+         ORDER BY category LIMIT 5`,
+        [`%${q}%`]
+      ),
+    ]);
+
+    res.json({
+      products, shops,
+      categories: categoryRows.rows.map((r) => r.category),
+      popularSearches,
+    });
   } catch (err) {
     next(err);
   }
@@ -160,6 +217,7 @@ async function removeProduct(req, res, next) {
 
 module.exports = {
   listProducts,
+  getSuggestions,
   getProduct,
   addProduct,
   getMyProducts,
