@@ -18,7 +18,18 @@ async function createProduct(sellerId, {
   return result.rows[0];
 }
 
-async function getProducts({ category, search, limit = 20, offset = 0 } = {}) {
+const SORT_COLUMNS = {
+  relevance: 'p.created_at DESC',
+  newest: 'p.created_at DESC',
+  price_asc: 'p.price ASC',
+  price_desc: 'p.price DESC',
+  rating: 'avg_rating DESC NULLS LAST',
+};
+
+async function getProducts({
+  category, search, minPrice, maxPrice, sellerId, minRating, inStockOnly,
+  sort = 'relevance', limit = 20, offset = 0,
+} = {}) {
   const conditions = [`p.status = 'approved'`];
   const params = [];
 
@@ -29,26 +40,60 @@ async function getProducts({ category, search, limit = 20, offset = 0 } = {}) {
 
   if (search) {
     params.push(`%${search}%`);
-    conditions.push(`p.name ILIKE $${params.length}`);
+    conditions.push(`(p.name ILIKE $${params.length} OR p.category ILIKE $${params.length} OR s.shop_name ILIKE $${params.length})`);
+  }
+
+  if (minPrice !== undefined && minPrice !== null && minPrice !== '') {
+    params.push(minPrice);
+    conditions.push(`p.price >= $${params.length}`);
+  }
+
+  if (maxPrice !== undefined && maxPrice !== null && maxPrice !== '') {
+    params.push(maxPrice);
+    conditions.push(`p.price <= $${params.length}`);
+  }
+
+  if (sellerId) {
+    params.push(sellerId);
+    conditions.push(`p.seller_id = $${params.length}`);
+  }
+
+  if (inStockOnly) {
+    conditions.push(`p.stock > 0`);
   }
 
   const where = conditions.join(' AND ');
+  const having = minRating ? `HAVING COALESCE(AVG(r.rating), 0) >= ${Number(minRating)}` : '';
 
   const countResult = await pool.query(
-    `SELECT COUNT(*) FROM products p WHERE ${where}`,
+    `SELECT COUNT(*) FROM (
+       SELECT p.id
+       FROM products p
+       JOIN sellers s ON s.id = p.seller_id
+       LEFT JOIN reviews r ON r.product_id = p.id AND r.status = 'visible'
+       WHERE ${where}
+       GROUP BY p.id
+       ${having}
+     ) counted`,
     params
   );
   const total = parseInt(countResult.rows[0].count, 10);
 
+  const orderBy = SORT_COLUMNS[sort] || SORT_COLUMNS.relevance;
   params.push(limit);
   params.push(offset);
 
   const result = await pool.query(
-    `SELECT p.*, s.shop_name
+    `SELECT p.*, s.shop_name,
+            COALESCE(AVG(r.rating), 0)::float AS avg_rating,
+            COUNT(r.id)::int AS review_count
      FROM products p
      JOIN sellers s ON s.id = p.seller_id
+     LEFT JOIN reviews r ON r.product_id = p.id AND r.status = 'visible'
      WHERE ${where}
-     ORDER BY p.created_at DESC
+     GROUP BY p.id, s.shop_name
+     ${having}
+     ORDER BY ${orderBy}
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );
@@ -58,13 +103,39 @@ async function getProducts({ category, search, limit = 20, offset = 0 } = {}) {
 
 async function getProductById(id) {
   const result = await pool.query(
-    `SELECT p.*, s.shop_name
+    `SELECT p.*, s.shop_name,
+            COALESCE(AVG(r.rating), 0)::float AS avg_rating,
+            COUNT(r.id)::int AS review_count
      FROM products p
      JOIN sellers s ON s.id = p.seller_id
-     WHERE p.id = $1`,
+     LEFT JOIN reviews r ON r.product_id = p.id AND r.status = 'visible'
+     WHERE p.id = $1
+     GROUP BY p.id, s.shop_name`,
     [id]
   );
   return result.rows[0];
+}
+
+async function getSearchSuggestions(q) {
+  const like = `%${q}%`;
+  const [products, shops] = await Promise.all([
+    pool.query(
+      `SELECT p.id, p.name, p.price, p.image_url, p.category
+       FROM products p
+       WHERE p.status = 'approved' AND p.name ILIKE $1
+       ORDER BY p.created_at DESC
+       LIMIT 5`,
+      [like]
+    ),
+    pool.query(
+      `SELECT s.id, s.shop_name
+       FROM sellers s
+       WHERE s.status = 'approved' AND s.shop_name ILIKE $1
+       LIMIT 4`,
+      [like]
+    ),
+  ]);
+  return { products: products.rows, shops: shops.rows };
 }
 
 async function getProductsBySeller(sellerId) {
@@ -145,6 +216,7 @@ module.exports = {
   createProduct,
   getProducts,
   getProductById,
+  getSearchSuggestions,
   getProductsBySeller,
   updateProduct,
   deleteProduct,
