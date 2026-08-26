@@ -9,7 +9,8 @@ const {
 } = require('../models/productModel');
 const { findSellerByUserId } = require('../models/userModel');
 const { logSearch, getPopularSearches } = require('../models/searchLogModel');
-const pool = require('../config/db');
+const { Op, fn, col } = require('sequelize');
+const { Product } = require('../models/sequelize');
 
 const VALID_SORTS = ['relevance', 'newest', 'price_asc', 'price_desc', 'rating'];
 
@@ -59,17 +60,18 @@ async function getSuggestions(req, res, next) {
     const [{ products, shops }, popularSearches, categoryRows] = await Promise.all([
       getSearchSuggestions(q),
       getPopularSearches(6),
-      pool.query(
-        `SELECT DISTINCT category FROM products
-         WHERE status = 'approved' AND category ILIKE $1
-         ORDER BY category LIMIT 5`,
-        [`%${q}%`]
-      ),
+      Product.findAll({
+        attributes: [[fn('DISTINCT', col('category')), 'category']],
+        where: { status: 'approved', category: { [Op.iLike]: `%${q}%` } },
+        order: [['category', 'ASC']],
+        limit: 5,
+        raw: true,
+      }),
     ]);
 
     res.json({
       products, shops,
-      categories: categoryRows.rows.map((r) => r.category),
+      categories: categoryRows.map((r) => r.category),
       popularSearches,
     });
   } catch (err) {

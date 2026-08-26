@@ -2,7 +2,7 @@ const { findSellerByUserId } = require('../models/userModel');
 const { getOrderItemsBySeller, getSellerStats, getMonthlyRevenue, getRecentOrdersBySeller } = require('../models/orderItemModel');
 const { getReviewsBySeller } = require('../models/reviewModel');
 const { updateOrderStatus } = require('../models/orderModel');
-const pool = require('../config/db');
+const { OrderItem } = require('../models/sequelize');
 
 async function getProfile(req, res, next) {
   try {
@@ -107,11 +107,8 @@ async function changeOrderStatus(req, res, next) {
     }
 
     // Verify this order contains items from this seller
-    const check = await pool.query(
-      `SELECT 1 FROM order_items WHERE order_id = $1 AND seller_id = $2 LIMIT 1`,
-      [id, seller.id]
-    );
-    if (check.rows.length === 0) {
+    const check = await OrderItem.findOne({ where: { order_id: id, seller_id: seller.id } });
+    if (!check) {
       return res.status(404).json({ message: 'Order not found or not associated with your store' });
     }
 

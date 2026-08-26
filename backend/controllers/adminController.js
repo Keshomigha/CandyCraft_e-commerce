@@ -1,4 +1,5 @@
-const pool = require('../config/db');
+const { Op, fn, col, QueryTypes } = require('sequelize');
+const { sequelize, User, Seller, Product, Order, Report } = require('../models/sequelize');
 const {
   getAllUsers,
   getAllSellers,
@@ -71,11 +72,11 @@ async function setUserStatus(req, res, next) {
       return res.status(400).json({ message: 'You cannot change the status of your own account' });
     }
 
-    const targetCheck = await pool.query('SELECT role FROM users WHERE id = $1', [targetId]);
-    if (targetCheck.rows.length === 0) {
+    const targetUser = await User.findByPk(targetId, { attributes: ['role'] });
+    if (!targetUser) {
       return res.status(404).json({ message: 'User not found' });
     }
-    if (targetCheck.rows[0].role === 'admin') {
+    if (targetUser.role === 'admin') {
       return res.status(403).json({ message: 'Cannot change the status of another admin account' });
     }
 
@@ -93,11 +94,11 @@ async function removeUser(req, res, next) {
       return res.status(400).json({ message: 'You cannot delete your own account' });
     }
 
-    const targetCheck = await pool.query('SELECT role FROM users WHERE id = $1', [targetId]);
-    if (targetCheck.rows.length === 0) {
+    const targetUser = await User.findByPk(targetId, { attributes: ['role'] });
+    if (!targetUser) {
       return res.status(404).json({ message: 'User not found' });
     }
-    if (targetCheck.rows[0].role === 'admin') {
+    if (targetUser.role === 'admin') {
       return res.status(403).json({ message: 'Cannot delete another admin account' });
     }
 
@@ -253,15 +254,15 @@ async function resolveReport(req, res, next) {
       await deleteProductAdmin(report.target_id);
       await resolveReportsForTarget(report.target_type, report.target_id, 'actioned');
     } else if (action === 'warn') {
-      const targetCheck = await pool.query('SELECT role FROM users WHERE id = $1', [report.target_id]);
-      if (targetCheck.rows[0]?.role === 'admin') {
+      const targetUser = await User.findByPk(report.target_id, { attributes: ['role'] });
+      if (targetUser?.role === 'admin') {
         return res.status(403).json({ message: 'Cannot warn an admin account' });
       }
       await createWarning(report.target_id, message, req.user.id);
       await resolveReportsForTarget(report.target_type, report.target_id, 'actioned');
     } else if (action === 'suspend') {
-      const targetCheck = await pool.query('SELECT role FROM users WHERE id = $1', [report.target_id]);
-      if (targetCheck.rows[0]?.role === 'admin') {
+      const targetUser = await User.findByPk(report.target_id, { attributes: ['role'] });
+      if (targetUser?.role === 'admin') {
         return res.status(403).json({ message: 'Cannot suspend an admin account' });
       }
       await updateUserStatus(report.target_id, 'suspended');
@@ -276,20 +277,20 @@ async function resolveReport(req, res, next) {
 
 async function getStats(req, res, next) {
   try {
-    const [users, sellers, products, orders, revenue] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM users'),
-      pool.query('SELECT COUNT(*) FROM sellers'),
-      pool.query('SELECT COUNT(*) FROM products'),
-      pool.query('SELECT COUNT(*) FROM orders'),
-      pool.query(`SELECT COALESCE(SUM(total_amount), 0) AS total FROM orders WHERE status != 'cancelled'`),
+    const [totalUsers, totalSellers, totalProducts, totalOrders, totalRevenue] = await Promise.all([
+      User.count(),
+      Seller.count(),
+      Product.count(),
+      Order.count(),
+      Order.sum('total_amount', { where: { status: { [Op.ne]: 'cancelled' } } }),
     ]);
 
     res.json({
-      totalUsers: Number(users.rows[0].count),
-      totalSellers: Number(sellers.rows[0].count),
-      totalProducts: Number(products.rows[0].count),
-      totalOrders: Number(orders.rows[0].count),
-      totalRevenue: Number(revenue.rows[0].total),
+      totalUsers,
+      totalSellers,
+      totalProducts,
+      totalOrders,
+      totalRevenue: totalRevenue || 0,
     });
   } catch (err) {
     next(err);
@@ -302,81 +303,83 @@ async function getStats(req, res, next) {
 // pile of still-pending applications doesn't skew them.
 async function getDashboardOverview(req, res, next) {
   try {
+    const sevenDaysAgo = { created_at: { [Op.gte]: sequelize.literal("NOW() - INTERVAL '7 days'") } };
+
     const [
-      userCount, sellerCount, productCount, orderCount, revenue,
-      newUsers, newSellers, newProducts, newOrders,
+      totalUsers, totalSellers, totalProducts, totalOrders, totalRevenue,
+      newUsers7d, newSellers7d, newProducts7d, newOrders7d,
       sellerStatusCounts, productStatusCounts, orderStatusCounts,
       recentOrders, recentSellers, recentReports, recentUsers, recentProducts,
       pendingSellers, pendingProducts, pendingReports, priorityReports,
     ] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM users'),
-      pool.query('SELECT COUNT(*) FROM sellers'),
-      pool.query('SELECT COUNT(*) FROM products'),
-      pool.query('SELECT COUNT(*) FROM orders'),
-      pool.query(`SELECT COALESCE(SUM(total_amount), 0) AS total FROM orders WHERE status != 'cancelled'`),
+      User.count(),
+      Seller.count(),
+      Product.count(),
+      Order.count(),
+      Order.sum('total_amount', { where: { status: { [Op.ne]: 'cancelled' } } }),
 
-      pool.query(`SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`),
-      pool.query(`SELECT COUNT(*) FROM sellers WHERE created_at >= NOW() - INTERVAL '7 days'`),
-      pool.query(`SELECT COUNT(*) FROM products WHERE created_at >= NOW() - INTERVAL '7 days'`),
-      pool.query(`SELECT COUNT(*) FROM orders WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      User.count({ where: sevenDaysAgo }),
+      Seller.count({ where: sevenDaysAgo }),
+      Product.count({ where: sevenDaysAgo }),
+      Order.count({ where: sevenDaysAgo }),
 
-      pool.query(`SELECT status, COUNT(*) FROM sellers GROUP BY status`),
-      pool.query(`SELECT status, COUNT(*) FROM products GROUP BY status`),
-      pool.query(`SELECT status, COUNT(*) FROM orders GROUP BY status`),
+      Seller.findAll({ attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
+      Product.findAll({ attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
+      Order.findAll({ attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
 
-      pool.query(`
+      sequelize.query(`
         SELECT o.id, o.total_amount, o.created_at, u.name AS actor_name
         FROM orders o JOIN users u ON u.id = o.user_id
         ORDER BY o.created_at DESC LIMIT 5
-      `),
-      pool.query(`
+      `, { type: QueryTypes.SELECT }),
+      sequelize.query(`
         SELECT s.id, s.shop_name, s.created_at, u.name AS actor_name
         FROM sellers s JOIN users u ON u.id = s.user_id
         ORDER BY s.created_at DESC LIMIT 5
-      `),
-      pool.query(`
+      `, { type: QueryTypes.SELECT }),
+      sequelize.query(`
         SELECT r.id, r.reason, r.target_type, r.created_at, reporter.name AS actor_name
         FROM reports r JOIN users reporter ON reporter.id = r.reporter_id
         ORDER BY r.created_at DESC LIMIT 5
-      `),
-      pool.query(`SELECT id, name, role, created_at FROM users ORDER BY created_at DESC LIMIT 5`),
-      pool.query(`
+      `, { type: QueryTypes.SELECT }),
+      User.findAll({ attributes: ['id', 'name', 'role', 'created_at'], order: [['created_at', 'DESC']], limit: 5, raw: true }),
+      sequelize.query(`
         SELECT p.id, p.name, p.created_at, s.shop_name
         FROM products p JOIN sellers s ON s.id = p.seller_id
         ORDER BY p.created_at DESC LIMIT 5
-      `),
+      `, { type: QueryTypes.SELECT }),
 
-      pool.query(`SELECT COUNT(*) FROM sellers WHERE status = 'pending'`),
-      pool.query(`SELECT COUNT(*) FROM products WHERE status = 'pending'`),
-      pool.query(`SELECT COUNT(*) FROM reports WHERE status = 'pending'`),
-      pool.query(`SELECT COUNT(*) FROM reports WHERE status = 'pending' AND priority = true`),
+      Seller.count({ where: { status: 'pending' } }),
+      Product.count({ where: { status: 'pending' } }),
+      Report.count({ where: { status: 'pending' } }),
+      Report.count({ where: { status: 'pending', priority: true } }),
     ]);
 
     const countBy = (rows) => rows.reduce((acc, r) => ({ ...acc, [r.status]: Number(r.count) }), {});
-    const sellersByStatus = countBy(sellerStatusCounts.rows);
-    const productsByStatus = countBy(productStatusCounts.rows);
-    const ordersByStatus = countBy(orderStatusCounts.rows);
+    const sellersByStatus = countBy(sellerStatusCounts);
+    const productsByStatus = countBy(productStatusCounts);
+    const ordersByStatus = countBy(orderStatusCounts);
 
     const rate = (num, den) => (den > 0 ? Math.round((num / den) * 1000) / 10 : null);
 
     const activity = [
-      ...recentOrders.rows.map((o) => ({
+      ...recentOrders.map((o) => ({
         type: 'order', id: o.id, created_at: o.created_at,
         actorName: o.actor_name, amount: Number(o.total_amount),
       })),
-      ...recentSellers.rows.map((s) => ({
+      ...recentSellers.map((s) => ({
         type: 'seller', id: s.id, created_at: s.created_at,
         actorName: s.actor_name, shopName: s.shop_name,
       })),
-      ...recentReports.rows.map((r) => ({
+      ...recentReports.map((r) => ({
         type: 'report', id: r.id, created_at: r.created_at,
         actorName: r.actor_name, reason: r.reason, targetType: r.target_type,
       })),
-      ...recentUsers.rows.map((u) => ({
+      ...recentUsers.map((u) => ({
         type: 'user', id: u.id, created_at: u.created_at,
         actorName: u.name, role: u.role,
       })),
-      ...recentProducts.rows.map((p) => ({
+      ...recentProducts.map((p) => ({
         type: 'product', id: p.id, created_at: p.created_at,
         productName: p.name, shopName: p.shop_name,
       })),
@@ -386,23 +389,23 @@ async function getDashboardOverview(req, res, next) {
 
     res.json({
       stats: {
-        totalUsers: Number(userCount.rows[0].count),
-        totalSellers: Number(sellerCount.rows[0].count),
-        totalProducts: Number(productCount.rows[0].count),
-        totalOrders: Number(orderCount.rows[0].count),
-        totalRevenue: Number(revenue.rows[0].total),
+        totalUsers,
+        totalSellers,
+        totalProducts,
+        totalOrders,
+        totalRevenue: totalRevenue || 0,
       },
       trends: {
-        newUsers7d: Number(newUsers.rows[0].count),
-        newSellers7d: Number(newSellers.rows[0].count),
-        newProducts7d: Number(newProducts.rows[0].count),
-        newOrders7d: Number(newOrders.rows[0].count),
+        newUsers7d,
+        newSellers7d,
+        newProducts7d,
+        newOrders7d,
       },
       quickActions: {
-        pendingSellers: Number(pendingSellers.rows[0].count),
-        pendingProducts: Number(pendingProducts.rows[0].count),
-        pendingReports: Number(pendingReports.rows[0].count),
-        priorityReports: Number(priorityReports.rows[0].count),
+        pendingSellers,
+        pendingProducts,
+        pendingReports,
+        priorityReports,
       },
       health: {
         orderSuccessRate: rate(ordersByStatus.delivered || 0, (ordersByStatus.delivered || 0) + (ordersByStatus.cancelled || 0)),

@@ -1,4 +1,5 @@
-const pool = require('../config/db');
+const { QueryTypes } = require('sequelize');
+const { sequelize, Order } = require('../models/sequelize');
 const { placeOrder, getOrdersByUser, getOrderById } = require('../models/orderModel');
 const { getItemsByOrder } = require('../models/orderItemModel');
 
@@ -42,46 +43,51 @@ async function getOrderDetails(req, res, next) {
 }
 
 async function cancelOrder(req, res, next) {
-  const client = await pool.connect();
   try {
     const orderId = req.params.id;
     const userId = req.user.id;
 
-    await client.query('BEGIN');
+    const result = await sequelize.transaction(async (t) => {
+      const order = await Order.findOne({
+        where: { id: orderId, user_id: userId },
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
 
-    const orderRes = await client.query(
-      'SELECT * FROM orders WHERE id = $1 AND user_id = $2 FOR UPDATE',
-      [orderId, userId]
-    );
+      if (!order) {
+        return { notFound: true };
+      }
 
-    if (orderRes.rows.length === 0) {
-      await client.query('ROLLBACK');
+      if (order.status !== 'pending' && order.status !== 'processing') {
+        return { badStatus: order.status };
+      }
+
+      await order.update({ status: 'cancelled' }, { transaction: t });
+
+      const items = await sequelize.query(
+        'SELECT product_id, quantity FROM order_items WHERE order_id = $1',
+        { bind: [orderId], type: QueryTypes.SELECT, transaction: t }
+      );
+      for (const item of items) {
+        await sequelize.query(
+          'UPDATE products SET stock = stock + $1 WHERE id = $2',
+          { bind: [item.quantity, item.product_id], type: QueryTypes.UPDATE, transaction: t }
+        );
+      }
+
+      return { ok: true };
+    });
+
+    if (result.notFound) {
       return res.status(404).json({ message: 'Order not found' });
     }
-
-    const order = orderRes.rows[0];
-    if (order.status !== 'pending' && order.status !== 'processing') {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ message: `Cannot cancel an order in "${order.status}" status` });
+    if (result.badStatus) {
+      return res.status(400).json({ message: `Cannot cancel an order in "${result.badStatus}" status` });
     }
 
-    await client.query("UPDATE orders SET status = 'cancelled' WHERE id = $1", [orderId]);
-
-    const itemsRes = await client.query('SELECT product_id, quantity FROM order_items WHERE order_id = $1', [orderId]);
-    for (const item of itemsRes.rows) {
-      await client.query(
-        'UPDATE products SET stock = stock + $1 WHERE id = $2',
-        [item.quantity, item.product_id]
-      );
-    }
-
-    await client.query('COMMIT');
     res.json({ message: 'Order cancelled successfully', orderId });
   } catch (err) {
-    await client.query('ROLLBACK');
     next(err);
-  } finally {
-    client.release();
   }
 }
 

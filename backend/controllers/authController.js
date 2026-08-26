@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const pool = require('../config/db');
+const { Op } = require('sequelize');
+const { User } = require('../models/sequelize');
 const {
   createUser,
   findUserByEmail,
@@ -87,14 +88,13 @@ async function login(req, res, next) {
 
 async function getProfile(req, res, next) {
   try {
-    const result = await pool.query(
-      'SELECT id, name, email, role, phone, address, city, postal_code, created_at FROM users WHERE id = $1',
-      [req.user.id]
-    );
-    if (result.rows.length === 0) {
+    const user = await User.findByPk(req.user.id, {
+      attributes: ['id', 'name', 'email', 'role', 'phone', 'address', 'city', 'postal_code', 'created_at'],
+    });
+    if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json(result.rows[0]);
+    res.json(user.get({ plain: true }));
   } catch (err) {
     next(err);
   }
@@ -106,19 +106,25 @@ async function updateProfile(req, res, next) {
     const userId = req.user.id;
 
     if (email) {
-      const emailCheck = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [email, userId]);
-      if (emailCheck.rows.length > 0) {
+      const existing = await User.findOne({ where: { email, id: { [Op.ne]: userId } } });
+      if (existing) {
         return res.status(409).json({ message: 'Email is already taken' });
       }
     }
 
-    const userResult = await pool.query('SELECT password FROM users WHERE id = $1', [userId]);
-    if (userResult.rows.length === 0) {
+    const user = await User.findByPk(userId, { attributes: ['password'] });
+    if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    const user = userResult.rows[0];
 
-    let hashedPassword = null;
+    const changes = {};
+    if (name !== undefined) changes.name = name;
+    if (email !== undefined) changes.email = email;
+    if (phone !== undefined) changes.phone = phone || null;
+    if (address !== undefined) changes.address = address || null;
+    if (city !== undefined) changes.city = city || null;
+    if (postal_code !== undefined) changes.postal_code = postal_code || null;
+
     if (newPassword) {
       if (!currentPassword) {
         return res.status(400).json({ message: 'Current password is required to change password' });
@@ -127,35 +133,17 @@ async function updateProfile(req, res, next) {
       if (!isMatch) {
         return res.status(400).json({ message: 'Incorrect current password' });
       }
-      hashedPassword = await bcrypt.hash(newPassword, 10);
+      changes.password = await bcrypt.hash(newPassword, 10);
     }
 
-    const updateResult = await pool.query(
-      `UPDATE users
-       SET name = COALESCE($1, name),
-           email = COALESCE($2, email),
-           phone = COALESCE($3, phone),
-           address = COALESCE($4, address),
-           city = COALESCE($5, city),
-           postal_code = COALESCE($6, postal_code),
-           password = COALESCE($7, password)
-       WHERE id = $8
-       RETURNING id, name, email, role, phone, address, city, postal_code, created_at`,
-      [
-        name,
-        email,
-        phone === undefined ? null : (phone || null),
-        address === undefined ? null : (address || null),
-        city === undefined ? null : (city || null),
-        postal_code === undefined ? null : (postal_code || null),
-        hashedPassword,
-        userId
-      ]
-    );
+    const [, rows] = await User.update(changes, {
+      where: { id: userId },
+      returning: ['id', 'name', 'email', 'role', 'phone', 'address', 'city', 'postal_code', 'created_at'],
+    });
 
     res.json({
       message: 'Profile updated successfully',
-      user: updateResult.rows[0]
+      user: rows[0].get({ plain: true }),
     });
   } catch (err) {
     next(err);
