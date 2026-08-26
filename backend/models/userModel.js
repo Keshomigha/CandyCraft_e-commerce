@@ -41,14 +41,16 @@ async function createSellerProfile(userId, shopName, description) {
 async function getApprovedSellers() {
   const result = await pool.query(
     `SELECT s.id, s.user_id, s.shop_name, s.description, u.name,
-            COUNT(DISTINCT p.id) AS product_count
+            COUNT(DISTINCT p.id) AS product_count,
+            COALESCE(AVG(r.rating), 0)::float AS avg_rating,
+            COUNT(DISTINCT r.id)::int AS review_count
      FROM sellers s
      JOIN users u ON u.id = s.user_id
      LEFT JOIN products p ON p.seller_id = s.id AND p.status = 'approved'
+     LEFT JOIN reviews r ON r.product_id = p.id AND r.status = 'visible'
      WHERE s.status = 'approved'
      GROUP BY s.id, u.name
-     ORDER BY product_count DESC
-     LIMIT 8`
+     ORDER BY product_count DESC`
   );
   return result.rows;
 }
