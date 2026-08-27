@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const pool = require('../config/db');
+const { User } = require('../models/sequelize');
 
 async function protect(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -13,8 +13,7 @@ async function protect(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const result = await pool.query('SELECT id, role, status FROM users WHERE id = $1', [decoded.id]);
-    const user = result.rows[0];
+    const user = await User.findByPk(decoded.id, { attributes: ['id', 'role', 'status'] });
 
     if (!user) {
       return res.status(401).json({ message: 'Not authorized, user no longer exists' });
