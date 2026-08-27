@@ -46,7 +46,7 @@ async function register(req, res, next) {
 
     res.status(201).json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, profile_image: user.profile_image || null },
     });
   } catch (err) {
     next(err);
@@ -79,17 +79,19 @@ async function login(req, res, next) {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, profile_image: user.profile_image || null },
     });
   } catch (err) {
     next(err);
   }
 }
 
+const PROFILE_ATTRIBUTES = ['id', 'name', 'email', 'role', 'phone', 'address', 'city', 'postal_code', 'profile_image', 'created_at'];
+
 async function getProfile(req, res, next) {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: ['id', 'name', 'email', 'role', 'phone', 'address', 'city', 'postal_code', 'created_at'],
+      attributes: PROFILE_ATTRIBUTES,
     });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -138,7 +140,7 @@ async function updateProfile(req, res, next) {
 
     const [, rows] = await User.update(changes, {
       where: { id: userId },
-      returning: ['id', 'name', 'email', 'role', 'phone', 'address', 'city', 'postal_code', 'created_at'],
+      returning: PROFILE_ATTRIBUTES,
     });
 
     res.json({
@@ -150,4 +152,24 @@ async function updateProfile(req, res, next) {
   }
 }
 
-module.exports = { register, login, getProfile, updateProfile };
+async function updateProfilePhoto(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No photo uploaded' });
+    }
+
+    const [, rows] = await User.update(
+      { profile_image: `/uploads/${req.file.filename}` },
+      { where: { id: req.user.id }, returning: PROFILE_ATTRIBUTES }
+    );
+
+    res.json({
+      message: 'Profile photo updated successfully',
+      user: rows[0].get({ plain: true }),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { register, login, getProfile, updateProfile, updateProfilePhoto };
