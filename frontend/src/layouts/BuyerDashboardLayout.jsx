@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuth from '../hooks/useAuth';
+import LogoMark from '../components/common/LogoMark';
 
 const NAV = [
   {
@@ -11,6 +12,16 @@ const NAV = [
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
           d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+    ),
+  },
+  {
+    to: '/buyer/cart',
+    label: 'My Cart',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m-10 0a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4z" />
       </svg>
     ),
   },
@@ -100,13 +111,13 @@ export default function BuyerDashboardLayout() {
       >
         {/* Logo */}
         <div className="px-5 pt-6 pb-4 border-b border-gray-100">
-          <div className="flex items-center gap-2 mb-0.5">
-            <motion.span className="text-2xl" whileHover={{ rotate: [0, -12, 12, 0], scale: 1.1 }} transition={{ duration: 0.4 }}>🍬</motion.span>
+          <Link to="/" className="flex items-center gap-2 mb-0.5 w-fit">
+            <LogoMark className="w-8 h-8" />
             <span className="font-extrabold text-lg tracking-tight">
               <span className="text-[#F4A261]">Candy</span>
               <span className="text-gray-800">Craft</span>
             </span>
-          </div>
+          </Link>
           <p className="text-[11px] text-gray-400 font-medium ml-0.5">Buyer Panel</p>
         </div>
 
