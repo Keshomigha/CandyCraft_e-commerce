@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuth from '../hooks/useAuth';
+import LogoMark from '../components/common/LogoMark';
 
 const NAV = [
   {
@@ -120,13 +121,13 @@ export default function SellerDashboardLayout() {
       >
         {/* Logo */}
         <div className="px-5 pt-6 pb-4 border-b border-gray-100">
-          <div className="flex items-center gap-2 mb-0.5">
-            <motion.span className="text-2xl" whileHover={{ rotate: [0, -12, 12, 0], scale: 1.1 }} transition={{ duration: 0.4 }}>🍬</motion.span>
+          <Link to="/" className="flex items-center gap-2 mb-0.5 w-fit">
+            <LogoMark className="w-8 h-8" />
             <span className="font-extrabold text-lg tracking-tight">
               <span className="text-[#F4A261]">Candy</span>
               <span className="text-gray-800">Craft</span>
             </span>
-          </div>
+          </Link>
           <p className="text-[11px] text-gray-400 font-medium ml-0.5">Seller Panel</p>
         </div>
 
