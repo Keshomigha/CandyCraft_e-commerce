@@ -1,48 +1,40 @@
-const pool = require('../config/db');
+const { QueryTypes } = require('sequelize');
+const { sequelize, Review } = require('./sequelize');
 
 async function getReviewsByProduct(productId) {
-  const result = await pool.query(
+  return sequelize.query(
     `SELECT r.id, r.rating, r.comment, r.created_at, u.name AS user_name
      FROM reviews r
      JOIN users u ON u.id = r.user_id
      WHERE r.product_id = $1 AND r.status = 'visible'
      ORDER BY r.created_at DESC`,
-    [productId]
+    { bind: [productId], type: QueryTypes.SELECT }
   );
-  return result.rows;
 }
 
 async function getReviewByUserAndProduct(userId, productId) {
-  const result = await pool.query(
-    'SELECT * FROM reviews WHERE user_id = $1 AND product_id = $2',
-    [userId, productId]
-  );
-  return result.rows[0];
+  const review = await Review.findOne({ where: { user_id: userId, product_id: productId } });
+  return review ? review.get({ plain: true }) : undefined;
 }
 
 async function hasPurchasedProduct(userId, productId) {
-  const result = await pool.query(
+  const rows = await sequelize.query(
     `SELECT 1 FROM order_items oi
      JOIN orders o ON o.id = oi.order_id
      WHERE o.user_id = $1 AND oi.product_id = $2
      LIMIT 1`,
-    [userId, productId]
+    { bind: [userId, productId], type: QueryTypes.SELECT }
   );
-  return result.rows.length > 0;
+  return rows.length > 0;
 }
 
 async function createReview(userId, productId, rating, comment) {
-  const result = await pool.query(
-    `INSERT INTO reviews (product_id, user_id, rating, comment)
-     VALUES ($1, $2, $3, $4)
-     RETURNING *`,
-    [productId, userId, rating, comment]
-  );
-  return result.rows[0];
+  const review = await Review.create({ product_id: productId, user_id: userId, rating, comment });
+  return review.get({ plain: true });
 }
 
 async function getReviewsBySeller(sellerId) {
-  const result = await pool.query(
+  return sequelize.query(
     `SELECT r.id, r.rating, r.comment, r.status, r.created_at,
             u.name AS user_name, p.id AS product_id, p.name AS product_name
      FROM reviews r
@@ -50,52 +42,47 @@ async function getReviewsBySeller(sellerId) {
      JOIN users u ON u.id = r.user_id
      WHERE p.seller_id = $1
      ORDER BY r.created_at DESC`,
-    [sellerId]
+    { bind: [sellerId], type: QueryTypes.SELECT }
   );
-  return result.rows;
 }
 
 async function getAllReviewsAdmin() {
-  const result = await pool.query(
+  return sequelize.query(
     `SELECT r.*, u.name AS user_name, p.name AS product_name
      FROM reviews r
      JOIN users u ON u.id = r.user_id
      JOIN products p ON p.id = r.product_id
-     ORDER BY r.created_at DESC`
+     ORDER BY r.created_at DESC`,
+    { type: QueryTypes.SELECT }
   );
-  return result.rows;
 }
 
 async function updateReviewStatus(id, status) {
-  const result = await pool.query(
-    'UPDATE reviews SET status = $1 WHERE id = $2 RETURNING *',
-    [status, id]
-  );
-  return result.rows[0];
+  const [, rows] = await Review.update({ status }, { where: { id }, returning: true });
+  return rows[0] ? rows[0].get({ plain: true }) : undefined;
 }
 
 async function deleteReviewAdmin(id) {
-  const result = await pool.query(
-    'DELETE FROM reviews WHERE id = $1 RETURNING *',
-    [id]
-  );
-  return result.rows[0];
+  const review = await Review.findByPk(id);
+  if (!review) return undefined;
+  const plain = review.get({ plain: true });
+  await review.destroy();
+  return plain;
 }
 
 async function getReviewsByUser(userId) {
-  const result = await pool.query(
+  return sequelize.query(
     `SELECT r.id, r.rating, r.comment, r.created_at, p.id AS product_id, p.name AS product_name, p.image_url AS product_image
      FROM reviews r
      JOIN products p ON p.id = r.product_id
      WHERE r.user_id = $1
      ORDER BY r.created_at DESC`,
-    [userId]
+    { bind: [userId], type: QueryTypes.SELECT }
   );
-  return result.rows;
 }
 
 async function getPendingReviewsByUser(userId) {
-  const result = await pool.query(
+  return sequelize.query(
     `SELECT DISTINCT p.id AS product_id, p.name AS product_name, p.image_url AS product_image, o.id AS order_id
      FROM order_items oi
      JOIN orders o ON o.id = oi.order_id
@@ -103,9 +90,8 @@ async function getPendingReviewsByUser(userId) {
      WHERE o.user_id = $1 AND o.status IN ('delivered', 'shipped') AND NOT EXISTS (
        SELECT 1 FROM reviews r WHERE r.user_id = $1 AND r.product_id = oi.product_id
      )`,
-     [userId]
+    { bind: [userId], type: QueryTypes.SELECT }
   );
-  return result.rows;
 }
 
 module.exports = {
