@@ -11,6 +11,7 @@ const User = sequelize.define('User', {
   address: DataTypes.TEXT,
   city: DataTypes.STRING(100),
   postal_code: DataTypes.STRING(20),
+  profile_image: DataTypes.STRING(255),
 }, { tableName: 'users' });
 
 const Seller = sequelize.define('Seller', {
@@ -59,7 +60,7 @@ const OrderItem = sequelize.define('OrderItem', {
   quantity: { type: DataTypes.INTEGER, allowNull: false },
   price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
   customization: DataTypes.JSONB,
-}, { tableName: 'order_items' });
+}, { tableName: 'order_items', timestamps: false });
 
 const Review = sequelize.define('Review', {
   product_id: { type: DataTypes.INTEGER, allowNull: false },
