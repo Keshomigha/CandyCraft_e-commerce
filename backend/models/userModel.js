@@ -1,45 +1,40 @@
-const pool = require('../config/db');
+const { QueryTypes } = require('sequelize');
+const { sequelize, User, Seller } = require('./sequelize');
 
 async function createUser({ name, email, password, role }) {
-  const result = await pool.query(
-    `INSERT INTO users (name, email, password, role)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, name, email, role, created_at`,
-    [name, email, password, role]
-  );
-  return result.rows[0];
+  const user = await User.create({ name, email, password, role });
+  return { id: user.id, name: user.name, email: user.email, role: user.role, created_at: user.created_at };
 }
 
 async function findUserByEmail(email) {
-  const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-  return result.rows[0];
+  const user = await User.findOne({ where: { email } });
+  return user ? user.get({ plain: true }) : undefined;
 }
 
 async function findUserById(id) {
-  const result = await pool.query(
-    'SELECT id, name, email, role, created_at FROM users WHERE id = $1',
-    [id]
-  );
-  return result.rows[0];
+  const user = await User.findByPk(id, {
+    attributes: ['id', 'name', 'email', 'role', 'created_at'],
+  });
+  return user ? user.get({ plain: true }) : undefined;
 }
 
 async function findSellerByUserId(userId) {
-  const result = await pool.query('SELECT * FROM sellers WHERE user_id = $1', [userId]);
-  return result.rows[0];
+  const seller = await Seller.findOne({ where: { user_id: userId } });
+  return seller ? seller.get({ plain: true }) : undefined;
 }
 
 async function createSellerProfile(userId, shopName, description) {
-  const result = await pool.query(
-    `INSERT INTO sellers (user_id, shop_name, description)
-     VALUES ($1, $2, $3)
-     RETURNING id, user_id, shop_name, description, status, created_at`,
-    [userId, shopName, description || null]
-  );
-  return result.rows[0];
+  const seller = await Seller.create({ user_id: userId, shop_name: shopName, description: description || null });
+  return seller.get({ plain: true });
 }
 
+// Aggregates real per-seller rating/product stats via a LEFT JOIN — kept as
+// a raw query since the flattened alias shape (avg_rating, review_count,
+// product_count sitting alongside the seller's own columns) is what the
+// frontend consumes directly, and that's awkward to reproduce with
+// Sequelize's `include`, which nests associated rows instead of flattening.
 async function getApprovedSellers() {
-  const result = await pool.query(
+  return sequelize.query(
     `SELECT s.id, s.user_id, s.shop_name, s.description, u.name,
             COUNT(DISTINCT p.id) AS product_count,
             COALESCE(AVG(r.rating), 0)::float AS avg_rating,
@@ -50,51 +45,51 @@ async function getApprovedSellers() {
      LEFT JOIN reviews r ON r.product_id = p.id AND r.status = 'visible'
      WHERE s.status = 'approved'
      GROUP BY s.id, u.name
-     ORDER BY product_count DESC`
+     ORDER BY product_count DESC`,
+    { type: QueryTypes.SELECT }
   );
-  return result.rows;
 }
 
 async function getAllUsers() {
-  const result = await pool.query(
-    'SELECT id, name, email, role, status, created_at FROM users ORDER BY created_at DESC'
-  );
-  return result.rows;
+  const users = await User.findAll({
+    attributes: ['id', 'name', 'email', 'role', 'status', 'created_at'],
+    order: [['created_at', 'DESC']],
+  });
+  return users.map((u) => u.get({ plain: true }));
 }
 
 async function updateUserStatus(id, status) {
-  const result = await pool.query(
-    'UPDATE users SET status = $1 WHERE id = $2 RETURNING id, name, email, role, status, created_at',
-    [status, id]
+  const [, rows] = await User.update(
+    { status },
+    { where: { id }, returning: ['id', 'name', 'email', 'role', 'status', 'created_at'] }
   );
-  return result.rows[0];
+  return rows[0] ? rows[0].get({ plain: true }) : undefined;
 }
 
 async function deleteUserById(id) {
-  const result = await pool.query(
-    'DELETE FROM users WHERE id = $1 RETURNING id, name, email, role',
-    [id]
-  );
-  return result.rows[0];
+  const user = await User.findByPk(id, { attributes: ['id', 'name', 'email', 'role'] });
+  if (!user) return undefined;
+  const plain = user.get({ plain: true });
+  await user.destroy();
+  return plain;
 }
 
+// Flattens seller + owning-user columns for the admin table — see
+// getApprovedSellers() above for why this stays a raw query.
 async function getAllSellers() {
-  const result = await pool.query(
+  return sequelize.query(
     `SELECT s.id, s.user_id, s.shop_name, s.description, s.status, s.created_at,
             u.name, u.email
      FROM sellers s
      JOIN users u ON u.id = s.user_id
-     ORDER BY s.created_at DESC`
+     ORDER BY s.created_at DESC`,
+    { type: QueryTypes.SELECT }
   );
-  return result.rows;
 }
 
 async function updateSellerStatus(sellerId, status) {
-  const result = await pool.query(
-    `UPDATE sellers SET status = $1 WHERE id = $2 RETURNING *`,
-    [status, sellerId]
-  );
-  return result.rows[0];
+  const [, rows] = await Seller.update({ status }, { where: { id: sellerId }, returning: true });
+  return rows[0] ? rows[0].get({ plain: true }) : undefined;
 }
 
 module.exports = {
