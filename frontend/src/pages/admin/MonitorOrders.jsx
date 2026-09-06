@@ -10,6 +10,7 @@ export default function MonitorOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
+  const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
 
   const load = () => {
@@ -24,7 +25,15 @@ export default function MonitorOrders() {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
-  const filtered = tab === 'all' ? orders : orders.filter(o => o.status === tab);
+  const byTab = tab === 'all' ? orders : orders.filter(o => o.status === tab);
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? byTab.filter(o =>
+        String(o.id).includes(q) ||
+        (o.buyer_name || '').toLowerCase().includes(q) ||
+        (o.buyer_email || '').toLowerCase().includes(q)
+      )
+    : byTab;
 
   const counts = TABS.reduce((acc, t) => {
     acc[t] = t === 'all' ? orders.length : orders.filter(o => o.status === t).length;
@@ -47,6 +56,30 @@ export default function MonitorOrders() {
         <h1 className="text-2xl font-extrabold text-gray-800">Monitor Orders</h1>
         <p className="text-gray-400 text-sm mt-1">View every order across the platform and override status</p>
       </motion.div>
+
+      <div className="relative max-w-sm">
+        <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+        </svg>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by order ID, buyer name, or email..."
+          className="w-full pl-10 pr-9 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#F4A261] focus:ring-2 focus:ring-orange-100 transition"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            aria-label="Clear search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-1">
         {TABS.map(t => {
