@@ -1,68 +1,60 @@
-
-const pool = require('../config/db');
+const { QueryTypes, Op, fn, col } = require('sequelize');
+const { sequelize, Report, UserWarning } = require('./sequelize');
 
 const VALID_TARGET_TYPES = ['product', 'user'];
 const VALID_REASONS = ['scam', 'inappropriate', 'spam', 'prohibited', 'other'];
 
 async function createReport({ reporterId, targetType, targetId, reason, details }) {
-  const result = await pool.query(
-    `INSERT INTO reports (reporter_id, target_type, target_id, reason, details)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING *`,
-    [reporterId, targetType, targetId, reason, details || null]
-  );
-  return result.rows[0];
+  const report = await Report.create({
+    reporter_id: reporterId, target_type: targetType, target_id: targetId,
+    reason, details: details || null,
+  });
+  return report.get({ plain: true });
 }
 
 async function findPendingReport(reporterId, targetType, targetId) {
-  const result = await pool.query(
-    `SELECT * FROM reports
-     WHERE reporter_id = $1 AND target_type = $2 AND target_id = $3 AND status = 'pending'`,
-    [reporterId, targetType, targetId]
-  );
-  return result.rows[0];
+  const report = await Report.findOne({
+    where: { reporter_id: reporterId, target_type: targetType, target_id: targetId, status: 'pending' },
+  });
+  return report ? report.get({ plain: true }) : undefined;
 }
 
 async function countRecentReports(targetType, targetId, sinceDate) {
-  const result = await pool.query(
-    `SELECT COUNT(*) FROM reports
-     WHERE target_type = $1 AND target_id = $2 AND created_at >= $3`,
-    [targetType, targetId, sinceDate]
-  );
-  return Number(result.rows[0].count);
+  return Report.count({
+    where: { target_type: targetType, target_id: targetId, created_at: { [Op.gte]: sinceDate } },
+  });
 }
 
 async function markPendingReportsPriority(targetType, targetId) {
-  await pool.query(
-    `UPDATE reports SET priority = true
-     WHERE target_type = $1 AND target_id = $2 AND status = 'pending'`,
-    [targetType, targetId]
+  await Report.update(
+    { priority: true },
+    { where: { target_type: targetType, target_id: targetId, status: 'pending' } }
   );
 }
 
 async function getReportById(id) {
-  const result = await pool.query('SELECT * FROM reports WHERE id = $1', [id]);
-  return result.rows[0];
+  const report = await Report.findByPk(id);
+  return report ? report.get({ plain: true }) : undefined;
 }
 
 async function updateReportStatus(id, status) {
-  const result = await pool.query(
-    'UPDATE reports SET status = $1 WHERE id = $2 RETURNING *',
-    [status, id]
-  );
-  return result.rows[0];
+  const [, rows] = await Report.update({ status }, { where: { id }, returning: true });
+  return rows[0] ? rows[0].get({ plain: true }) : undefined;
 }
 
 async function resolveReportsForTarget(targetType, targetId, status) {
-  await pool.query(
-    `UPDATE reports SET status = $1
-     WHERE target_type = $2 AND target_id = $3 AND status = 'pending'`,
-    [status, targetType, targetId]
+  await Report.update(
+    { status },
+    { where: { target_type: targetType, target_id: targetId, status: 'pending' } }
   );
 }
 
+// Polymorphic target (product vs. user) resolved via CASE, plus a
+// correlated subquery for the target's total report count — stays a raw
+// query since neither maps cleanly onto Sequelize's association-based
+// `include`.
 async function getAllReportsAdmin() {
-  const result = await pool.query(`
+  return sequelize.query(`
     SELECT
       r.*,
       reporter.name AS reporter_name,
@@ -84,25 +76,21 @@ async function getAllReportsAdmin() {
     LEFT JOIN products p ON r.target_type = 'product' AND p.id = r.target_id
     LEFT JOIN users target_user ON r.target_type = 'user' AND target_user.id = r.target_id
     ORDER BY r.priority DESC, r.created_at DESC
-  `);
-  return result.rows;
+  `, { type: QueryTypes.SELECT });
 }
 
 async function createWarning(userId, message, issuedBy) {
-  const result = await pool.query(
-    `INSERT INTO user_warnings (user_id, message, issued_by)
-     VALUES ($1, $2, $3)
-     RETURNING *`,
-    [userId, message || null, issuedBy]
-  );
-  return result.rows[0];
+  const warning = await UserWarning.create({ user_id: userId, message: message || null, issued_by: issuedBy });
+  return warning.get({ plain: true });
 }
 
 async function getWarningCounts() {
-  const result = await pool.query(
-    `SELECT user_id, COUNT(*) AS count FROM user_warnings GROUP BY user_id`
-  );
-  return result.rows;
+  const rows = await UserWarning.findAll({
+    attributes: ['user_id', [fn('COUNT', col('id')), 'count']],
+    group: ['user_id'],
+    raw: true,
+  });
+  return rows;
 }
 
 module.exports = {
