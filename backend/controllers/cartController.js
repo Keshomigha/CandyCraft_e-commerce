@@ -7,6 +7,20 @@ const {
 } = require('../models/cartModel');
 const { getProductById } = require('../models/productModel');
 
+// A customization fee only applies once the buyer actually customized
+// something — an empty/all-blank customization object (e.g. every field
+// left untouched) shouldn't be charged just because the product supports
+// customization.
+function hasMeaningfulCustomization(customization) {
+  if (!customization || typeof customization !== 'object') return false;
+  return Object.entries(customization).some(([key, value]) => {
+    if (key === 'fee') return false;
+    if (value === undefined || value === null || value === '') return false;
+    if (typeof value === 'boolean') return value === true;
+    return true;
+  });
+}
+
 async function viewCart(req, res, next) {
   try {
     const items = await getCartByUser(req.user.id);
@@ -28,8 +42,12 @@ async function addItem(req, res, next) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    const customizationPayload = customization
-      ? { ...customization, fee: product.customizable ? Number(product.customization_fee) : 0 }
+    // Custom Paintings personalization is always free for buyers, regardless
+    // of whatever customization_fee a seller may have set on the product.
+    const feeApplies = product.customizable && product.category !== 'Custom Paintings';
+
+    const customizationPayload = hasMeaningfulCustomization(customization)
+      ? { ...customization, fee: feeApplies ? Number(product.customization_fee) : 0 }
       : null;
 
     const item = await addOrUpdateCartItem(req.user.id, productId, quantity, customizationPayload);
