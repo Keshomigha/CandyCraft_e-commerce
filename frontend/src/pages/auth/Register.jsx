@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { register } from '../../api/authApi';
+import { register, googleAuth } from '../../api/authApi';
 import useAuth from '../../hooks/useAuth';
+import LogoMark from '../../components/common/LogoMark';
+import GoogleButton from '../../components/common/GoogleButton';
+import ShopNameModal from '../../components/auth/ShopNameModal';
 
 export default function Register() {
   const navigate  = useNavigate();
@@ -19,7 +22,52 @@ export default function Register() {
   const [error, setError]             = useState('');
   const [loading, setLoading]         = useState(false);
 
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [shopModalOpen, setShopModalOpen] = useState(false);
+  const [shopSubmitting, setShopSubmitting] = useState(false);
+
   const handle = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const finishGoogleAuth = async (role, shopName) => {
+    const res = await googleAuth({ role, shopName });
+    login(res.data.token, res.data.user);
+    navigate(role === 'seller' ? '/seller/dashboard' : '/buyer/dashboard');
+  };
+
+  const handleGoogleClick = async () => {
+    setError('');
+    if (form.role === 'seller') {
+      // Sellers signing up for the first time need a shop name — the manual
+      // form collects it inline, so the Google flow prompts for it via a
+      // modal right after the (mocked) Google auth step completes.
+      setGoogleLoading(true);
+      await new Promise((r) => setTimeout(r, 700));
+      setGoogleLoading(false);
+      setShopModalOpen(true);
+      return;
+    }
+    setGoogleLoading(true);
+    try {
+      await finishGoogleAuth('buyer');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Google sign-up failed');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleShopNameSubmit = async (shopName) => {
+    setShopSubmitting(true);
+    try {
+      await finishGoogleAuth('seller', shopName);
+      setShopModalOpen(false);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not finish seller setup');
+      setShopModalOpen(false);
+    } finally {
+      setShopSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,7 +105,7 @@ export default function Register() {
         transition={{ duration: 0.5 }}
       >
         <Link to="/" className="flex items-center gap-2 mb-6">
-          <motion.span className="text-3xl" whileHover={{ rotate: [0, -15, 15, -10, 0], scale: 1.15 }} transition={{ duration: 0.5 }}>🍬</motion.span>
+          <LogoMark className="w-11 h-11" />
           <span className="font-bold text-xl">
             <span className="text-pink-500">candy</span>
             <span className="text-gray-800">craft</span>
@@ -221,6 +269,18 @@ export default function Register() {
           </motion.button>
         </form>
 
+        <div className="flex items-center gap-3 my-6">
+          <div className="h-px flex-1 bg-gray-100" />
+          <span className="text-xs text-gray-400 font-medium">OR</span>
+          <div className="h-px flex-1 bg-gray-100" />
+        </div>
+
+        <GoogleButton
+          loading={googleLoading}
+          onClick={handleGoogleClick}
+          label={form.role === 'seller' ? 'Continue with Google as a Seller' : 'Continue with Google as a Buyer'}
+        />
+
         <p className="text-center text-sm text-gray-400 mt-6">
           Already have an account?{' '}
           <Link to="/login" className="font-bold text-gray-800 hover:text-pink-500 transition-colors">
@@ -228,6 +288,13 @@ export default function Register() {
           </Link>
         </p>
       </motion.div>
+
+      <ShopNameModal
+        open={shopModalOpen}
+        submitting={shopSubmitting}
+        onCancel={() => setShopModalOpen(false)}
+        onSubmit={handleShopNameSubmit}
+      />
     </div>
   );
 }
