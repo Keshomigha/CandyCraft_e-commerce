@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { login as loginApi } from '../../api/authApi';
+import { login as loginApi, googleAuth } from '../../api/authApi';
 import useAuth from '../../hooks/useAuth';
+import LogoMark from '../../components/common/LogoMark';
+import GoogleButton from '../../components/common/GoogleButton';
 
 export default function Login() {
   const navigate   = useNavigate();
@@ -12,8 +14,27 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handle = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleGoogleClick = async () => {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      // TODO(backend): a real Google sign-in needs to tell us whether this
+      // account already exists (and what role/shop it has) vs. is brand new.
+      // Once /api/auth/google exists, branch on `isNewUser` here and only
+      // show the seller shop-name prompt (see Register.jsx) for new sellers.
+      const res = await googleAuth({ role: 'buyer' });
+      login(res.data.token, res.data.user);
+      navigate('/buyer/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Google sign-in failed');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,7 +67,7 @@ export default function Login() {
         transition={{ duration: 0.5 }}
       >
         <Link to="/" className="flex items-center gap-2 mb-6">
-          <motion.span className="text-3xl" whileHover={{ rotate: [0, -15, 15, -10, 0], scale: 1.15 }} transition={{ duration: 0.5 }}>🍬</motion.span>
+          <LogoMark className="w-11 h-11" />
           <span className="font-bold text-xl">
             <span className="text-pink-500">candy</span>
             <span className="text-gray-800">craft</span>
@@ -149,6 +170,14 @@ export default function Login() {
             </AnimatePresence>
           </motion.button>
         </form>
+
+        <div className="flex items-center gap-3 my-6">
+          <div className="h-px flex-1 bg-gray-100" />
+          <span className="text-xs text-gray-400 font-medium">OR</span>
+          <div className="h-px flex-1 bg-gray-100" />
+        </div>
+
+        <GoogleButton loading={googleLoading} onClick={handleGoogleClick} />
 
         <p className="text-center text-sm text-gray-400 mt-6">
           Don't have an account?{' '}
