@@ -19,11 +19,6 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 const { getApprovedSellers } = require('./models/userModel');
 
-// Connect and make sure every table the Sequelize models declare actually
-// exists — this replaces the old hand-rolled "check a column, ALTER TABLE
-// if missing" IIFE. sequelize.sync() only creates tables that don't exist
-// yet; it never alters an existing table's columns, so it's safe to run
-// against a database (like this project's dev DB) that already has data.
 (async () => {
   try {
     await sequelize.authenticate();
