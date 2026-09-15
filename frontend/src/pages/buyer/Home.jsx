@@ -1,20 +1,45 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { getProducts, getCategories } from '../../api/productApi';
 import { getPublicSellers } from '../../api/sellerApi';
-import graduationBouquet from '../../assets/images/graduation bouquet.jpg';
+import { addToCart } from '../../api/cartApi';
+import useAuth from '../../hooks/useAuth';
+import volunteerHome from '../../assets/images/volunteer_home.png';
+import ReportButton from '../../components/common/ReportButton';
+import FitImage from '../../components/common/FitImage';
+import SearchBar from '../../components/common/SearchBar';
 import imgCandyBouquet    from '../../assets/images/candybouquet.jpg';
 import imgFlowerBouquet   from '../../assets/images/flowerbouquet.jpg';
 import imgGiftBoxes       from '../../assets/images/giftboxes.jpg';
 import imgGraduationGifts from '../../assets/images/graduationgifts.jpg';
+import imgGreetingCards   from '../../assets/images/greeting_card.jpg';
+import imgCustomPaintings from '../../assets/images/custom_ paintings.jpg';
+import { CATEGORIES as CATEGORY_LIST, getCustomizableBadge } from '../../utils/categories';
 
-const CATEGORIES = [
-  { label: 'Candy Bouquets',   img: imgCandyBouquet,    emoji: '💐' },
-  { label: 'Graduation Gifts', img: imgGraduationGifts, emoji: '🎓' },
-  { label: 'Flower Bouquet',   img: imgFlowerBouquet,   emoji: '🌸' },
-  { label: 'Gift Boxes',       img: imgGiftBoxes,       emoji: '🎁' },
+const CATEGORY_IMAGES = {
+  'Candy Bouquets': imgCandyBouquet,
+  'Flower Bouquets': imgFlowerBouquet,
+  'Gift Boxes': imgGiftBoxes,
+  'Graduation Gifts': imgGraduationGifts,
+  'Greeting Cards': imgGreetingCards,
+  'Custom Paintings': imgCustomPaintings,
+};
+
+const CATEGORY_TILE_COLORS = [
+  'from-pink-400 to-rose-500',
+  'from-purple-400 to-indigo-500',
+  'from-amber-400 to-orange-500',
+  'from-emerald-400 to-teal-500',
+  'from-sky-400 to-blue-500',
+  'from-fuchsia-400 to-pink-500',
 ];
+
+const CATEGORIES = CATEGORY_LIST.map((cat, i) => ({
+  ...cat,
+  img: CATEGORY_IMAGES[cat.label] || null,
+  tileColor: CATEGORY_TILE_COLORS[i % CATEGORY_TILE_COLORS.length],
+}));
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -55,7 +80,7 @@ function Counter({ to, suffix = '' }) {
   return <span>{display}{suffix}</span>;
 }
 
-function StarRating({ rating = 5 }) {
+function StarRating({ rating = 0 }) {
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
@@ -67,11 +92,27 @@ function StarRating({ rating = 5 }) {
   );
 }
 
-function ProductCard({ product, index }) {
+function ProductCard({ product, index, onAddToCart }) {
   const bgColors = ['bg-red-50', 'bg-pink-50', 'bg-orange-50', 'bg-yellow-50', 'bg-green-50', 'bg-purple-50'];
   const emojis = ['🍬', '🎁', '🌹', '🍭', '🧁', '🍫'];
   const idx = product.id % bgColors.length;
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+
+  const handleAdd = async () => {
+    setAdding(true);
+    await onAddToCart(product.id);
+    setAdding(false);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  };
+
+  const stockBadge = product.stock === 0
+    ? { label: 'Out of Stock', className: 'bg-red-500 text-white' }
+    : product.stock < 5
+      ? { label: `Only ${product.stock} left`, className: 'bg-amber-500 text-white' }
+      : { label: 'In Stock', className: 'bg-green-500 text-white' };
 
   return (
     <motion.div
@@ -82,36 +123,68 @@ function ProductCard({ product, index }) {
       viewport={{ once: true, amount: 0.2 }}
       whileHover={{ y: -6 }}
       transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden group"
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden group flex flex-col"
     >
-      <div className={`relative ${bgColors[idx]} h-44 flex items-center justify-center overflow-hidden`}>
+      <div className={`relative ${bgColors[idx]} h-44 flex items-center justify-center overflow-hidden flex-shrink-0`}>
         {product.image_url ? (
-          <img
+          <FitImage
             src={`${import.meta.env.VITE_API_URL}${product.image_url}`}
             alt={product.name}
             onLoad={() => setImgLoaded(true)}
-            className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-105 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+            imgClassName={`transition-all duration-500 group-hover:scale-105 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
           />
         ) : (
           <span className="text-6xl transition-transform duration-300 group-hover:scale-110">{emojis[idx]}</span>
         )}
-        <span className="absolute top-3 left-3 text-xs font-bold px-2 py-1 rounded-full text-white bg-pink-500">
-          New
+        <span className={`absolute top-3 left-3 text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full shadow-sm ${stockBadge.className}`}>
+          {stockBadge.label}
         </span>
-      </div>
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-800 text-sm mb-1 truncate">{product.name}</h3>
-        <div className="flex items-center gap-1 mb-2">
-          <StarRating rating={5} />
+        {product.category && (
+          <span className="absolute top-3 right-3 bg-gray-900/80 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
+            {product.category}
+          </span>
+        )}
+        {getCustomizableBadge(product) && (
+          <span className="absolute bottom-3 left-3 bg-white text-pink-600 text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+            {getCustomizableBadge(product)}
+          </span>
+        )}
+        <div className="absolute bottom-3 right-3">
+          <ReportButton targetType="product" targetId={product.id} targetLabel={product.name} />
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-pink-500 font-bold">₹{Number(product.price).toFixed(2)}</span>
-          <motion.button
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.92 }}
-            className="bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
+      </div>
+      <div className="p-4 flex-1 flex flex-col">
+        {product.shop_name && (
+          <p className="text-xs text-gray-400 font-medium mb-0.5 truncate">{product.shop_name}</p>
+        )}
+        <h3 className="font-bold text-gray-800 text-base mb-2 truncate">{product.name}</h3>
+        <div className="flex items-center gap-1.5 mb-4">
+          <StarRating rating={product.avg_rating} />
+          <span className="text-xs text-gray-400">
+            {product.review_count > 0 ? `(${product.review_count})` : 'No reviews yet'}
+          </span>
+        </div>
+        <div className="mt-auto space-y-2">
+          <span className="block text-pink-500 font-bold text-base">₹{Number(product.price).toFixed(2)}</span>
+          <Link
+            to={`/products/${product.id}`}
+            className="block text-center text-sm font-semibold text-pink-600 bg-pink-50 hover:bg-pink-100 rounded-xl py-2.5 transition-colors"
           >
-            + Cart
+            View Details
+          </Link>
+          <motion.button
+            whileHover={{ scale: product.stock === 0 ? 1 : 1.02 }}
+            whileTap={{ scale: product.stock === 0 ? 1 : 0.98 }}
+            onClick={handleAdd}
+            disabled={product.stock === 0 || adding || added}
+            className={`w-full text-sm font-semibold py-2.5 rounded-xl transition-colors
+              ${added
+                ? 'bg-green-500 text-white'
+                : product.stock === 0
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-pink-500 hover:bg-pink-600 text-white'}`}
+          >
+            {added ? '✓ Added to Cart' : adding ? 'Adding…' : '+ Add to Cart'}
           </motion.button>
         </div>
       </div>
@@ -137,17 +210,40 @@ function SellerCard({ seller, index }) {
       </div>
       <h3 className="font-semibold text-gray-800 text-sm">{seller.shop_name}</h3>
       <p className="text-xs text-gray-400 mt-1 mb-2">{seller.description || 'Student candy crafter'}</p>
-      <StarRating rating={5} />
-      <p className="text-xs text-gray-400 mt-1">{seller.product_count} products</p>
+      <div className="flex items-center justify-center gap-1">
+        <StarRating rating={seller.avg_rating} />
+        {seller.review_count > 0 && <span className="text-xs text-gray-400">({seller.review_count})</span>}
+      </div>
+      <p className="text-xs text-gray-400 mt-1 mb-3">{seller.product_count} products</p>
+      {seller.user_id && (
+        <div className="flex justify-center">
+          <ReportButton targetType="user" targetId={seller.user_id} targetLabel={seller.shop_name} variant="text" />
+        </div>
+      )}
     </motion.div>
   );
 }
 
 export default function Home() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [sellers, setSellers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cartMsg, setCartMsg] = useState(null);
+
+  const handleAddToCart = async (productId) => {
+    if (!user) { navigate('/login'); return; }
+    try {
+      await addToCart(productId, 1);
+      setCartMsg({ text: 'Added to cart!', ok: true });
+    } catch (err) {
+      setCartMsg({ text: err.response?.data?.message || 'Could not add to cart', ok: false });
+    } finally {
+      setTimeout(() => setCartMsg(null), 3500);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -166,11 +262,26 @@ export default function Home() {
 
   return (
     <div className="bg-white">
+      {/* ── Mobile search (prominent, top of home screen) ── */}
+      <div className="md:hidden bg-[#F5F0EB] px-4 pt-4 pb-3 border-b border-gray-100">
+        <SearchBar variant="bar" className="w-full" />
+      </div>
+
       {/* ── Hero ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 overflow-hidden">
-        <div className="flex flex-col md:flex-row items-center gap-12">
+      <section className="relative overflow-hidden min-h-[560px] md:min-h-[640px] flex items-center">
+        {/* Background image */}
+        <img
+          src={volunteerHome}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Readability overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
           <motion.div
-            className="flex-1"
+            className="max-w-xl"
             initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
@@ -179,7 +290,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.5 }}
-              className="text-pink-500 font-medium text-sm mb-3 tracking-wide uppercase"
+              className="text-pink-300 font-semibold text-sm mb-3 tracking-wide uppercase"
             >
               CandyCraft Marketplace
             </motion.p>
@@ -187,15 +298,15 @@ export default function Home() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-4"
+              className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-4 drop-shadow-sm"
             >
-              Sweet Handmade <span className="text-pink-500">Candy Crafts</span> by Students
+              Sweet Handmade <span className="text-pink-400">Candy Crafts</span> by Students
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.6 }}
-              className="text-gray-500 text-base mb-8 max-w-md"
+              className="text-gray-200 text-base mb-8 max-w-md"
             >
               Discover unique handmade candy bouquets, gift boxes, and sweet creations made by talented student crafters.
             </motion.p>
@@ -206,12 +317,12 @@ export default function Home() {
               className="flex flex-wrap gap-3 mb-10"
             >
               <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-                <Link to="/products" className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-6 py-3 rounded-full transition-colors shadow-md shadow-pink-200 inline-block">
+                <Link to="/products" className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-6 py-3 rounded-full transition-colors shadow-lg shadow-black/30 inline-block">
                   Browse Products
                 </Link>
               </motion.div>
               <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-                <Link to="/register?role=seller" className="border-2 border-pink-500 text-pink-500 hover:bg-pink-50 font-semibold px-6 py-3 rounded-full transition-colors inline-block">
+                <Link to="/register?role=seller" className="border-2 border-white text-white hover:bg-white/10 font-semibold px-6 py-3 rounded-full transition-colors inline-block">
                   Become a Seller ▾
                 </Link>
               </motion.div>
@@ -223,42 +334,16 @@ export default function Home() {
               className="flex gap-8"
             >
               <div>
-                <p className="text-2xl font-bold text-gray-900"><Counter to={20} suffix="k+" /></p>
-                <p className="text-sm text-gray-500">Student crafters</p>
+                <p className="text-2xl font-bold text-white"><Counter to={20} suffix="k+" /></p>
+                <p className="text-sm text-gray-300">Student crafters</p>
               </div>
-              <div className="border-l border-gray-200 pl-8">
-                <p className="text-2xl font-bold text-gray-900"><Counter to={4.9} suffix="k+" /></p>
-                <p className="text-sm text-gray-500">Happy customers</p>
+              <div className="border-l border-white/25 pl-8">
+                <p className="text-2xl font-bold text-white"><Counter to={4.9} suffix="k+" /></p>
+                <p className="text-sm text-gray-300">Happy customers</p>
               </div>
-              <div className="border-l border-gray-200 pl-8">
-                <p className="text-2xl font-bold text-gray-900"><Counter to={500} suffix="+" /></p>
-                <p className="text-sm text-gray-500">Products listed</p>
-              </div>
-            </motion.div>
-          </motion.div>
-          <motion.div
-            className="flex-1 flex justify-center"
-            initial={{ opacity: 0, x: 40, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
-          >
-            <motion.div
-              whileHover={{ scale: 1.02, rotate: -0.5 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-              className="relative w-100 h-80 bg-[#F5F0EB] rounded-3xl overflow-hidden shadow-xl shadow-pink-100 group"
-            >
-              <img
-                src={graduationBouquet}
-                alt="Graduation Bouquet"
-                className="w-full h-full object-cover opacity-0 transition-all duration-700 ease-in-out group-hover:scale-105"
-                onLoad={(e) => e.target.classList.replace('opacity-0', 'opacity-100')}
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
-                }}
-              />
-              <div className="w-full h-full items-center justify-center text-8xl hidden absolute inset-0">
-                🎓🧸
+              <div className="border-l border-white/25 pl-8">
+                <p className="text-2xl font-bold text-white"><Counter to={500} suffix="+" /></p>
+                <p className="text-sm text-gray-300">Products listed</p>
               </div>
             </motion.div>
           </motion.div>
@@ -271,7 +356,7 @@ export default function Home() {
           <Reveal>
             <h2 className="text-2xl font-bold text-gray-900 mb-8">Shop by Category</h2>
           </Reveal>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {CATEGORIES.map((cat, i) => (
               <motion.div
                 key={cat.label}
@@ -287,14 +372,22 @@ export default function Home() {
                   to={`/products?category=${encodeURIComponent(cat.label)}`}
                   className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 h-44 block"
                 >
-                  {/* image */}
-                  <img
-                    src={cat.img}
-                    alt={cat.label}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  {/* dark overlay */}
-                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-300" />
+                  {cat.img ? (
+                    <>
+                      {/* image */}
+                      <img
+                        src={cat.img}
+                        alt={cat.label}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      {/* dark overlay */}
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-300" />
+                    </>
+                  ) : (
+                    <div className={`w-full h-full bg-gradient-to-br ${cat.tileColor} flex items-center justify-center transition-transform duration-500 group-hover:scale-110`}>
+                      <span className="text-5xl">{cat.emoji}</span>
+                    </div>
+                  )}
                   {/* label */}
                   <div className="absolute inset-0 flex flex-col items-center justify-end pb-4 px-2">
                     <span className="text-white font-semibold text-sm text-center drop-shadow">
@@ -321,7 +414,7 @@ export default function Home() {
             </div>
           ) : products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
+              {products.map((p, i) => <ProductCard key={p.id} product={p} index={i} onAddToCart={handleAddToCart} />)}
             </div>
           ) : (
             <p className="text-gray-400 text-sm">No products yet — sellers need to add products and get them approved.</p>
@@ -375,6 +468,25 @@ export default function Home() {
           </Reveal>
         </div>
       </section>
+
+      <AnimatePresence>
+        {cartMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className="fixed bottom-6 right-6 bg-gray-900 text-white text-sm px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-3"
+          >
+            {cartMsg.text}
+            {cartMsg.ok && (
+              <Link to="/buyer/cart" className="font-semibold text-[#F4A261] hover:underline whitespace-nowrap">
+                View Cart →
+              </Link>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
