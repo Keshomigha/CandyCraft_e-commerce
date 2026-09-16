@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getProfile, updateProfile } from '../../api/profileApi';
 import useAuth from '../../hooks/useAuth';
+import ProfileAvatarUpload from '../../components/common/ProfileAvatarUpload';
+
+const cardFade = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.4, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] } }),
+};
 
 export default function Profile() {
   const { user, login } = useAuth();
@@ -70,13 +77,21 @@ export default function Profile() {
 
   const initials = profile?.name?.slice(0, 2).toUpperCase() || '??';
 
+  const handlePhotoUploaded = (updatedUser) => {
+    setProfile(updatedUser);
+    const token = localStorage.getItem('token');
+    login(token, { ...user, profile_image: updatedUser.profile_image });
+    setMsg({ text: 'Profile photo updated!', ok: true });
+    setTimeout(() => setMsg({ text: '', ok: true }), 4000);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="text-2xl font-extrabold text-gray-800">My Profile</h1>
         <p className="text-gray-400 text-sm mt-1">Manage your account information</p>
-      </div>
+      </motion.div>
 
       {loading ? (
         <div className="space-y-4">
@@ -86,10 +101,13 @@ export default function Profile() {
       ) : (
         <form onSubmit={handleSave} className="space-y-5">
           {/* Profile card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center text-xl font-extrabold text-[#F4A261] flex-shrink-0">
-              {initials}
-            </div>
+          <motion.div custom={0} variants={cardFade} initial="hidden" animate="visible" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-5">
+            <ProfileAvatarUpload
+              imageUrl={profile?.profile_image ? `${import.meta.env.VITE_API_URL}${profile.profile_image}` : null}
+              initials={initials}
+              onUploaded={handlePhotoUploaded}
+              onError={(text) => { setMsg({ text, ok: false }); setTimeout(() => setMsg({ text: '', ok: true }), 4000); }}
+            />
             <div>
               <p className="font-bold text-gray-800 text-base">{profile?.name}</p>
               <p className="text-sm text-gray-400">{profile?.email}</p>
@@ -97,10 +115,10 @@ export default function Profile() {
                 {profile?.role}
               </span>
             </div>
-          </div>
+          </motion.div>
 
           {/* Personal Info */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+          <motion.div custom={1} variants={cardFade} initial="hidden" animate="visible" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
             <h2 className="font-bold text-gray-800 mb-1">Personal Information</h2>
 
             <div>
@@ -130,10 +148,10 @@ export default function Profile() {
                 />
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Default Address */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+          <motion.div custom={2} variants={cardFade} initial="hidden" animate="visible" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
             <h2 className="font-bold text-gray-800 mb-1">Default Address</h2>
 
             <div>
@@ -163,10 +181,10 @@ export default function Profile() {
                 />
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Change Password */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+          <motion.div custom={3} variants={cardFade} initial="hidden" animate="visible" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
             <h2 className="font-bold text-gray-800 mb-1">Change Password</h2>
             <p className="text-xs text-gray-400 -mt-2">Leave blank to keep your current password.</p>
 
@@ -188,24 +206,35 @@ export default function Profile() {
                 />
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Feedback */}
-          {msg.text && (
-            <div className={`text-sm px-4 py-3 rounded-xl font-medium ${msg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-              {msg.text}
-            </div>
-          )}
+          <AnimatePresence>
+            {msg.text && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className={`text-sm px-4 py-3 rounded-xl font-medium ${msg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                  {msg.text}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Save button */}
-          <button
+          <motion.button
+            whileHover={{ scale: saving ? 1 : 1.02 }}
+            whileTap={{ scale: saving ? 1 : 0.98 }}
             type="submit"
             disabled={saving}
             className="flex items-center gap-2 bg-[#F4A261] hover:bg-[#E76F51] text-white font-semibold px-7 py-3 rounded-full transition-colors disabled:opacity-60 shadow-sm"
           >
             <span className="text-base">🔒</span>
             {saving ? 'Saving…' : 'Save Changes'}
-          </button>
+          </motion.button>
         </form>
       )}
     </div>
