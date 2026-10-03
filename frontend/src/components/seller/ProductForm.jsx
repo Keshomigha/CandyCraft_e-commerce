@@ -106,7 +106,7 @@ export default function ProductForm({ initial = {}, onSubmit, saving }) {
     fd.append('category', form.category);
     fd.append('customizable', isCustomizable);
     fd.append('customizationOptions', JSON.stringify(isCustomizable ? customizationOptions : []));
-    fd.append('customizationFee', isCustomizable ? (customizationFee || 0) : 0);
+    fd.append('customizationFee', isCustomizable && !isPainting ? (customizationFee || 0) : 0);
     fd.append('customizationSettings', JSON.stringify(isCustomizable ? customizationSettings : {}));
     if (imageFile) fd.append('image', imageFile);
     onSubmit(fd);
@@ -315,17 +315,7 @@ export default function ProductForm({ initial = {}, onSubmit, saving }) {
             />
           </div>
 
-          <div className="max-w-xs">
-            <label className="block text-sm font-semibold text-gray-600 mb-1.5">Additional Customization Fee (LKR)</label>
-            <input
-              type="number" min="0" step="0.01"
-              value={customizationFee}
-              onChange={(e) => setCustomizationFee(e.target.value)}
-              placeholder="0"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#F4A261] focus:ring-2 focus:ring-orange-100 transition placeholder-gray-300"
-            />
-            <p className="text-xs text-gray-400 mt-1">Optional — added to the order total.</p>
-          </div>
+          <p className="text-xs text-gray-400">Personalizing a painting is free for buyers — no additional fee is added.</p>
         </motion.div>
       )}
 
