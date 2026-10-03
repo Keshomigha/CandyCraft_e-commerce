@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import LogoMark from './LogoMark';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -22,12 +23,12 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <motion.div custom={0} variants={fadeUp} className="col-span-1 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">🍬</span>
+            <Link to="/" className="flex items-center gap-2 mb-4 w-fit">
+              <LogoMark className="w-8 h-8" />
               <span className="font-bold text-lg text-white">
                 <span className="text-pink-400">candy</span>craft
               </span>
-            </div>
+            </Link>
             <p className="text-sm text-gray-400 leading-relaxed">
               A marketplace for student crafters to sell handmade candy creations and gifts.
             </p>
