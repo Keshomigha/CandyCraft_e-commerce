@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuth from '../../hooks/useAuth';
+import LogoMark from './LogoMark';
+import SearchBar from './SearchBar';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', end: true },
@@ -9,6 +11,8 @@ const NAV_LINKS = [
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
 ];
+
+const DASHBOARD_PATH = { buyer: '/buyer/dashboard', seller: '/seller/dashboard', admin: '/admin/dashboard' };
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -20,6 +24,8 @@ export default function Navbar() {
     navigate('/');
   };
 
+  const initials = user?.name?.slice(0, 2).toUpperCase() || '??';
+
   return (
     <motion.nav
       initial={{ y: -24, opacity: 0 }}
@@ -28,31 +34,28 @@ export default function Navbar() {
       className="bg-white shadow-sm sticky top-0 z-50"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        {/* Mobile/tablet: simple 2-slot flex (logo ↔ actions). Desktop (lg+): true
+            3-column grid so the nav links sit dead-center of the whole bar,
+            not just the space between the logo and the actions. */}
+        <div className="flex lg:grid lg:grid-cols-3 items-center justify-between h-16 gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <motion.span
-              className="text-xl"
-              whileHover={{ rotate: [0, -15, 15, -10, 0], scale: 1.15 }}
-              transition={{ duration: 0.5 }}
-            >
-              🍬
-            </motion.span>
+          <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+            <LogoMark className="w-9 h-9" />
             <span className="font-bold text-xl">
               <span className="text-pink-500">candy</span>
               <span className="text-gray-800">craft</span>
             </span>
           </Link>
 
-          {/* Nav links */}
-          <div className="hidden md:flex items-center gap-8">
+          {/* Nav links — true center column on desktop, hidden below lg */}
+          <div className="hidden lg:flex items-center justify-center gap-8">
             {NAV_LINKS.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
                 end={link.end}
                 className={({ isActive }) =>
-                  `relative font-medium text-md py-1 transition-colors ${
+                  `relative font-medium text-md py-1 whitespace-nowrap transition-colors ${
                     isActive ? 'text-pink-500' : 'text-gray-700 hover:text-pink-500'
                   }`
                 }
@@ -73,45 +76,41 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Right */}
-          <div className="flex items-center gap-4">
-            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} className="text-gray-500 hover:text-pink-500">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-              </svg>
-            </motion.button>
-            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} className="text-gray-500 hover:text-pink-500 hidden sm:block">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 0 1 6.364 0L12 7.636l1.318-1.318a4.5 4.5 0 0 1 6.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 0 1 0-6.364z" />
-              </svg>
-            </motion.button>
-            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} className="text-gray-500 hover:text-pink-500 relative hidden sm:block">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-              <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">0</span>
-            </motion.button>
+          {/* Right: search + auth + hamburger */}
+          <div className="flex items-center justify-end gap-4 flex-shrink-0">
+            <SearchBar variant="icon" />
 
             {user ? (
               <div className="hidden sm:flex items-center gap-3">
-                {user.role === 'buyer' && (
-                  <Link
-                    to="/buyer/dashboard"
-                    className="text-sm font-medium text-gray-700 hover:text-[#F4A261] transition-colors"
-                  >
-                    Hi, {user.name.split(' ')[0]} 👋
-                  </Link>
-                )}
-                {user.role !== 'buyer' && (
-                  <span className="text-sm font-medium text-gray-700">
-                    Hi, {user.name.split(' ')[0]}
-                  </span>
-                )}
+                <Link
+                  to={DASHBOARD_PATH[user.role] || '/'}
+                  title={user.name}
+                  aria-label="My profile"
+                  className="flex-shrink-0"
+                >
+                  {user.profile_image ? (
+                    <motion.img
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.95 }}
+                      src={`${import.meta.env.VITE_API_URL}${user.profile_image}`}
+                      alt={user.name}
+                      className="w-9 h-9 rounded-full object-cover ring-2 ring-transparent hover:ring-pink-200 transition-all"
+                    />
+                  ) : (
+                    <motion.span
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-9 h-9 rounded-full bg-orange-100 text-[#F4A261] flex items-center justify-center text-xs font-extrabold ring-2 ring-transparent hover:ring-pink-200 transition-all"
+                    >
+                      {initials}
+                    </motion.span>
+                  )}
+                </Link>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleLogout}
-                  className="border border-pink-500 text-pink-500 hover:bg-pink-50 text-sm font-medium px-4 py-2 rounded-full transition-colors"
+                  className="border border-pink-500 text-pink-500 hover:bg-pink-50 text-sm font-medium px-4 py-2 rounded-full transition-colors whitespace-nowrap"
                 >
                   Logout
                 </motion.button>
@@ -120,7 +119,7 @@ export default function Navbar() {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="hidden sm:block">
                 <Link
                   to="/login"
-                  className="bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors inline-block"
+                  className="bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors inline-block whitespace-nowrap"
                 >
                   Login
                 </Link>
@@ -131,7 +130,7 @@ export default function Navbar() {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setMenuOpen((o) => !o)}
-              className="md:hidden text-gray-600"
+              className="lg:hidden text-gray-600"
               aria-label="Toggle menu"
             >
               <motion.svg
@@ -164,7 +163,7 @@ export default function Navbar() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="md:hidden overflow-hidden border-t border-gray-100"
+            className="lg:hidden overflow-hidden border-t border-gray-100"
           >
             <div className="px-4 py-4 flex flex-col gap-1">
               {NAV_LINKS.map((link, i) => (
