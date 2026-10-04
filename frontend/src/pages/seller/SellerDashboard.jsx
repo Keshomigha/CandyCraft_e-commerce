@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import useAuth from '../../hooks/useAuth';
 import { getSellerDashboard } from '../../api/sellerApi';
 import SellerStatsCard from '../../components/seller/SellerStatsCard';
 import SalesChart from '../../components/seller/SalesChart';
+import Reveal from '../../components/common/Reveal';
+import { staggerContainer, listItem } from '../../utils/motionVariants';
 
 const STATUS_STYLES = {
   pending:    'bg-amber-100 text-amber-700',
@@ -50,12 +53,12 @@ export default function SellerDashboard() {
   return (
     <div className="space-y-7">
       {/* Welcome */}
-      <div>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="text-2xl font-extrabold text-gray-800">
           Welcome back, {firstName}! 👋
         </h1>
         <p className="text-gray-400 text-sm mt-1">Here's how your store is performing.</p>
-      </div>
+      </motion.div>
 
       {/* Stat Cards */}
       {loading ? (
@@ -66,10 +69,11 @@ export default function SellerDashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <SellerStatsCard icon="🎁" value={stats?.totalProducts ?? 0} label="Products" color="bg-orange-100" />
-          <SellerStatsCard icon="📋" value={stats?.totalOrders ?? 0} label="Orders" color="bg-blue-100" />
-          <SellerStatsCard icon="💰" value={formatCurrency(stats?.totalRevenue ?? 0)} label="Revenue" color="bg-green-100" />
+          <SellerStatsCard index={0} icon="🎁" value={stats?.totalProducts ?? 0} label="Products" color="bg-orange-100" />
+          <SellerStatsCard index={1} icon="📋" value={stats?.totalOrders ?? 0} label="Orders" color="bg-blue-100" />
+          <SellerStatsCard index={2} icon="💰" value={formatCurrency(stats?.totalRevenue ?? 0)} label="Revenue" color="bg-green-100" />
           <SellerStatsCard
+            index={3}
             icon={<span className="flex items-center gap-1">{stats?.avgRating ?? 0} <span className="text-yellow-400">⭐</span></span>}
             value={<span className="flex items-center gap-1">{stats?.avgRating ?? 0} <span className="text-yellow-400 text-lg">⭐</span></span>}
             label="Avg Rating"
@@ -79,7 +83,7 @@ export default function SellerDashboard() {
       )}
 
       {/* Revenue Overview */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <Reveal className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-bold text-gray-800">Revenue Overview</h2>
           {growthPct !== 0 && (
@@ -103,10 +107,10 @@ export default function SellerDashboard() {
             <SalesChart data={chart} height={240} />
           )}
         </div>
-      </div>
+      </Reveal>
 
       {/* Recent Orders */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <Reveal custom={1} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-bold text-gray-800">Recent Orders</h2>
           <Link to="/seller/orders" className="text-[#F4A261] text-sm font-medium hover:underline">
@@ -123,13 +127,13 @@ export default function SellerDashboard() {
             <p className="text-gray-400 text-sm">No orders yet. Share your products to get started!</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-50">
+          <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="divide-y divide-gray-50">
             {recent.map((order, idx) => (
-              <div key={idx} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50/60 transition-colors">
+              <motion.div key={idx} variants={listItem} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50/60 transition-colors">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {order.image_url ? (
-                      <img src={`${import.meta.env.VITE_API_URL}${order.image_url}`} alt="" className="w-full h-full object-cover" />
+                      <img src={`${import.meta.env.VITE_API_URL}${order.image_url}`} alt="" className="w-full h-full object-contain p-1" />
                     ) : (
                       <span className="text-lg">🍬</span>
                     )}
@@ -149,11 +153,11 @@ export default function SellerDashboard() {
                     {order.status === 'pending' ? 'New' : order.status}
                   </span>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
-      </div>
+      </Reveal>
     </div>
   );
 }
