@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createProduct, updateProduct } from '../../api/sellerApi';
 import { getProductById } from '../../api/productApi';
 import ProductForm from '../../components/seller/ProductForm';
@@ -42,15 +43,22 @@ export default function AddEditProduct() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link
-          to="/seller/products"
-          className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex items-center gap-3"
+      >
+        <motion.div whileHover={{ x: -3 }} whileTap={{ scale: 0.9 }}>
+          <Link
+            to="/seller/products"
+            className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors block"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </Link>
+        </motion.div>
         <div>
           <h1 className="text-2xl font-extrabold text-gray-800">
             {isEdit ? 'Edit Product' : 'Add New Product'}
@@ -59,14 +67,23 @@ export default function AddEditProduct() {
             {isEdit ? 'Update your product details' : 'Fill in the details to list a new product'}
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Error */}
-      {error && (
-        <div className="text-sm px-4 py-3 rounded-xl font-medium bg-red-50 text-red-600 border border-red-200">
-          {error}
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="text-sm px-4 py-3 rounded-xl font-medium bg-red-50 text-red-600 border border-red-200">
+              {error}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Form */}
       {loading ? (
@@ -75,11 +92,13 @@ export default function AddEditProduct() {
           <div className="bg-white rounded-2xl h-80 animate-pulse shadow-sm border border-gray-100" />
         </div>
       ) : (
-        <ProductForm
-          initial={isEdit ? product : {}}
-          onSubmit={handleSubmit}
-          saving={saving}
-        />
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+          <ProductForm
+            initial={isEdit ? product : {}}
+            onSubmit={handleSubmit}
+            saving={saving}
+          />
+        </motion.div>
       )}
     </div>
   );
