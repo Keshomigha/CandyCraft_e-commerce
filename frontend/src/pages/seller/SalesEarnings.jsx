@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { getSellerStats, getSellerRevenueChart } from '../../api/sellerApi';
 import SalesChart from '../../components/seller/SalesChart';
 import SellerStatsCard from '../../components/seller/SellerStatsCard';
+import Reveal from '../../components/common/Reveal';
+import { staggerContainer, tableRow } from '../../utils/motionVariants';
 
 export default function SalesEarnings() {
   const [stats, setStats] = useState(null);
@@ -23,10 +26,10 @@ export default function SalesEarnings() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="text-2xl font-extrabold text-gray-800">Sales & Earnings</h1>
         <p className="text-gray-400 text-sm mt-1">Track your revenue and sales performance</p>
-      </div>
+      </motion.div>
 
       {/* Stats */}
       {loading ? (
@@ -38,18 +41,21 @@ export default function SalesEarnings() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <SellerStatsCard
+            index={0}
             icon="💰"
             value={`LKR ${(stats?.totalRevenue ?? 0).toLocaleString()}`}
             label="Total Revenue"
             color="bg-green-100"
           />
           <SellerStatsCard
+            index={1}
             icon="📦"
             value={stats?.totalOrders ?? 0}
             label="Total Orders"
             color="bg-blue-100"
           />
           <SellerStatsCard
+            index={2}
             icon="🛒"
             value={stats?.totalItemsSold ?? 0}
             label="Items Sold"
@@ -59,7 +65,7 @@ export default function SalesEarnings() {
       )}
 
       {/* Revenue Chart (larger) */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <Reveal className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-bold text-gray-800">Revenue Trend (Last 6 Months)</h2>
           {chart.length > 0 && (
@@ -75,11 +81,11 @@ export default function SalesEarnings() {
             <SalesChart data={chart} height={300} />
           )}
         </div>
-      </div>
+      </Reveal>
 
       {/* Monthly Breakdown Table */}
       {!loading && chart.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <Reveal custom={1} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="font-bold text-gray-800">Monthly Breakdown</h2>
           </div>
@@ -92,9 +98,9 @@ export default function SalesEarnings() {
                   <th className="text-right px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Share</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <motion.tbody variants={staggerContainer} initial="hidden" animate="visible" className="divide-y divide-gray-50">
                 {chart.map((d, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50/60 transition-colors">
+                  <motion.tr key={idx} variants={tableRow} className="hover:bg-gray-50/60 transition-colors">
                     <td className="px-6 py-3 text-sm font-semibold text-gray-800">{d.month}</td>
                     <td className="px-6 py-3 text-right text-sm font-semibold text-[#F4A261]">
                       LKR {d.revenue.toLocaleString()}
@@ -102,9 +108,11 @@ export default function SalesEarnings() {
                     <td className="px-6 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-[#F4A261] to-[#E76F51] rounded-full transition-all duration-500"
-                            style={{ width: `${totalChartRevenue > 0 ? (d.revenue / totalChartRevenue) * 100 : 0}%` }}
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-[#F4A261] to-[#E76F51] rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${totalChartRevenue > 0 ? (d.revenue / totalChartRevenue) * 100 : 0}%` }}
+                            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                           />
                         </div>
                         <span className="text-xs text-gray-400 w-10 text-right">
@@ -112,12 +120,12 @@ export default function SalesEarnings() {
                         </span>
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
-              </tbody>
+              </motion.tbody>
             </table>
           </div>
-        </div>
+        </Reveal>
       )}
     </div>
   );
