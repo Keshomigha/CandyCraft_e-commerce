@@ -1,14 +1,16 @@
+import { Camera, Candy, Flower2, Gift, GraduationCap, Mail, Palette, Sparkles } from 'lucide-react';
+
 // Single source of truth for the product category list, shared by the
 // homepage category tiles, the Shop filter pills, and the seller's
 // Add/Edit Product category dropdown — these used to be three separate,
 // mismatched lists.
 export const CATEGORIES = [
-  { label: 'Candy Bouquets',   emoji: '🍬' },
-  { label: 'Flower Bouquets',  emoji: '🌸' },
-  { label: 'Graduation Gifts', emoji: '🎓' },
-  { label: 'Gift Boxes',       emoji: '🎁' },
-  { label: 'Greeting Cards',   emoji: '💌' },
-  { label: 'Custom Paintings', emoji: '🎨' },
+  { label: 'Candy Bouquets',   icon: Candy },
+  { label: 'Flower Bouquets',  icon: Flower2 },
+  { label: 'Graduation Gifts', icon: GraduationCap },
+  { label: 'Gift Boxes',       icon: Gift },
+  { label: 'Greeting Cards',   icon: Mail },
+  { label: 'Custom Paintings', icon: Palette },
 ];
 
 export const CATEGORY_LABELS = CATEGORIES.map((c) => c.label);
@@ -38,7 +40,7 @@ export const THEME_COLORS = ['Pink', 'Red', 'Purple', 'Blue', 'Yellow', 'Green',
 
 export function getCustomizableBadge(product) {
   if (!product?.customizable) return null;
-  if (product.category === 'Greeting Cards') return '✨ Personalized';
-  if (product.category === 'Custom Paintings') return '📷 Photo Upload';
-  return '✨ Customizable';
+  if (product.category === 'Greeting Cards') return { label: 'Personalized', icon: Sparkles };
+  if (product.category === 'Custom Paintings') return { label: 'Photo Upload', icon: Camera };
+  return { label: 'Customizable', icon: Sparkles };
 }
