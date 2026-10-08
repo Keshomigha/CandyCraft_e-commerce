@@ -5,12 +5,17 @@ const { getItemsByOrder } = require('../models/orderItemModel');
 
 async function checkout(req, res, next) {
   try {
-    const { shippingAddress } = req.body;
-    if (!shippingAddress) {
+    const { shippingAddress, contactName, contactPhone, paymentMethod } = req.body;
+    if (!shippingAddress || !String(shippingAddress).trim()) {
       return res.status(400).json({ message: 'Shipping address is required' });
     }
 
-    const order = await placeOrder(req.user.id, shippingAddress);
+    const order = await placeOrder(req.user.id, {
+      shippingAddress: String(shippingAddress).trim(),
+      contactName: contactName ? String(contactName).trim().slice(0, 100) : null,
+      contactPhone: contactPhone ? String(contactPhone).trim().slice(0, 30) : null,
+      paymentMethod: paymentMethod || 'cod',
+    });
     const items = await getItemsByOrder(order.id);
 
     res.status(201).json({ ...order, items });
