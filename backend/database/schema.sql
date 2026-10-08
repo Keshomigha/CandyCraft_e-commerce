@@ -49,6 +49,10 @@ CREATE TABLE orders (
     total_amount NUMERIC(10, 2) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'shipped', 'delivered', 'cancelled')),
     shipping_address TEXT,
+    contact_name VARCHAR(100),
+    contact_phone VARCHAR(30),
+    payment_method VARCHAR(20) NOT NULL DEFAULT 'cod' CHECK (payment_method IN ('cod', 'bank_transfer', 'card')),
+    shipping_fee NUMERIC(10, 2) NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
