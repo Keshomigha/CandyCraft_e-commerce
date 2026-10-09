@@ -1,6 +1,12 @@
 const { QueryTypes } = require('sequelize');
 const { sequelize, Order } = require('./sequelize');
 
+// Flat delivery charge (LKR) added to every order. Kept server-side so the
+// client can't change what gets charged.
+const SHIPPING_FEE = 250;
+// 'card' is reserved for when a payment gateway is integrated.
+const PAYMENT_METHODS = ['cod', 'bank_transfer'];
+
 // Stock-reservation checkout needs a transaction with a row lock scoped to
 // just the products being bought (`FOR UPDATE OF p`) while joined against
 // the buyer's cart — Sequelize's ORM-level locking (`lock: true` on a
@@ -8,7 +14,11 @@ const { sequelize, Order } = require('./sequelize');
 // "lock only this joined table," so the statements stay raw SQL run inside
 // a real Sequelize transaction (`sequelize.transaction()`), which still
 // gives proper BEGIN/COMMIT/ROLLBACK semantics through the ORM.
-async function placeOrder(userId, shippingAddress) {
+async function placeOrder(userId, { shippingAddress, contactName = null, contactPhone = null, paymentMethod = 'cod' }) {
+  if (!PAYMENT_METHODS.includes(paymentMethod)) {
+    throw Object.assign(new Error('Unsupported payment method'), { statusCode: 400 });
+  }
+
   return sequelize.transaction(async (t) => {
     const cartItems = await sequelize.query(
       `SELECT c.product_id, c.quantity, c.customization, p.price, p.stock, p.seller_id, p.name
@@ -32,13 +42,23 @@ async function placeOrder(userId, shippingAddress) {
       }
     }
 
-    const totalAmount = cartItems.reduce((sum, item) => {
+    const itemsTotal = cartItems.reduce((sum, item) => {
       const fee = item.customization?.fee ? Number(item.customization.fee) : 0;
       return sum + item.quantity * Number(item.price) + fee;
     }, 0);
+    const totalAmount = itemsTotal + SHIPPING_FEE;
 
     const order = await Order.create(
-      { user_id: userId, total_amount: totalAmount, shipping_address: shippingAddress, status: 'pending' },
+      {
+        user_id: userId,
+        total_amount: totalAmount,
+        shipping_fee: SHIPPING_FEE,
+        shipping_address: shippingAddress,
+        contact_name: contactName,
+        contact_phone: contactPhone,
+        payment_method: paymentMethod,
+        status: 'pending',
+      },
       { transaction: t }
     );
 
@@ -71,8 +91,25 @@ async function placeOrder(userId, shippingAddress) {
 }
 
 async function getOrdersByUser(userId) {
-  const orders = await Order.findAll({ where: { user_id: userId }, order: [['created_at', 'DESC']] });
-  return orders.map((o) => o.get({ plain: true }));
+  const orders = (await Order.findAll({ where: { user_id: userId }, order: [['created_at', 'DESC']] }))
+    .map((o) => o.get({ plain: true }));
+  if (orders.length === 0) return orders;
+
+  // Attach product names so list views can label orders by what was bought.
+  const rows = await sequelize.query(
+    `SELECT oi.order_id, p.name
+     FROM order_items oi
+     JOIN products p ON p.id = oi.product_id
+     WHERE oi.order_id = ANY($1)
+     ORDER BY oi.id`,
+    { bind: [orders.map((o) => o.id)], type: QueryTypes.SELECT }
+  );
+  const namesByOrder = new Map();
+  rows.forEach((r) => {
+    if (!namesByOrder.has(r.order_id)) namesByOrder.set(r.order_id, []);
+    namesByOrder.get(r.order_id).push(r.name);
+  });
+  return orders.map((o) => ({ ...o, item_names: namesByOrder.get(o.id) || [] }));
 }
 
 async function getOrderById(orderId, userId) {
@@ -98,6 +135,7 @@ async function getAllOrdersAdmin() {
 }
 
 module.exports = {
+  SHIPPING_FEE,
   placeOrder,
   getOrdersByUser,
   getOrderById,
