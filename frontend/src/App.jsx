@@ -27,6 +27,7 @@ import NotFound from './pages/NotFound';
 // Buyer panel pages
 import BuyerDashboard from './pages/buyer/BuyerDashboard';
 import Cart from './pages/buyer/Cart';
+import Checkout from './pages/buyer/Checkout';
 import MyOrders from './pages/buyer/MyOrders';
 import OrderDetails from './pages/buyer/OrderDetails';
 import Wishlist from './pages/buyer/Wishlist';
@@ -89,6 +90,7 @@ function App() {
             <Route index element={<Navigate to="/buyer/dashboard" replace />} />
             <Route path="dashboard" element={<BuyerDashboard />} />
             <Route path="cart"      element={<Cart />} />
+            <Route path="checkout"  element={<Checkout />} />
             <Route path="orders"    element={<MyOrders />} />
             <Route path="orders/:id" element={<OrderDetails />} />
             <Route path="wishlist"  element={<Wishlist />} />
