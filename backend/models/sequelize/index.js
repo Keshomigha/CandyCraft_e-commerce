@@ -51,6 +51,10 @@ const Order = sequelize.define('Order', {
   total_amount: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
   status: { type: DataTypes.ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled'), allowNull: false, defaultValue: 'pending' },
   shipping_address: DataTypes.TEXT,
+  contact_name: DataTypes.STRING(100),
+  contact_phone: DataTypes.STRING(30),
+  payment_method: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'cod' },
+  shipping_fee: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
 }, { tableName: 'orders' });
 
 const OrderItem = sequelize.define('OrderItem', {
@@ -144,6 +148,15 @@ SearchLog.belongsTo(User, { foreignKey: 'user_id' });
 
 async function syncDatabase() {
   await sequelize.sync();
+  // sync() never alters existing tables, so columns added after the initial
+  // schema are applied here idempotently.
+  await sequelize.query(`
+    ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS contact_name VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(30),
+      ADD COLUMN IF NOT EXISTS payment_method VARCHAR(20) NOT NULL DEFAULT 'cod',
+      ADD COLUMN IF NOT EXISTS shipping_fee NUMERIC(10, 2) NOT NULL DEFAULT 0
+  `);
 }
 
 module.exports = {
