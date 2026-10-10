@@ -1,5 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, tableRow } from '../../utils/motionVariants';
+import { Candy, Gift } from 'lucide-react';
+import { formatLKR } from '../../utils/constants';
 
 const STATUS_STYLES = {
   pending:  'bg-yellow-100 text-yellow-700',
@@ -11,7 +13,7 @@ export default function ProductModerationTable({ products, apiUrl, onApprove, on
   if (products.length === 0) {
     return (
       <div className="px-6 py-16 text-center">
-        <p className="text-4xl mb-3">🎁</p>
+        <Gift className="w-10 h-10 mx-auto mb-3 text-gray-300" strokeWidth={1.5} />
         <p className="text-gray-400 text-sm">No products found.</p>
       </div>
     );
@@ -39,7 +41,7 @@ export default function ProductModerationTable({ products, apiUrl, onApprove, on
                       {p.image_url ? (
                         <img src={`${apiUrl}${p.image_url}`} alt="" className="w-full h-full object-contain p-1" />
                       ) : (
-                        <span className="text-lg">🍬</span>
+                        <Candy className="w-5 h-5 text-pink-300" strokeWidth={1.5} />
                       )}
                     </div>
                     <span className="text-sm font-semibold text-gray-800 truncate max-w-[180px]">{p.name}</span>
@@ -51,7 +53,7 @@ export default function ProductModerationTable({ products, apiUrl, onApprove, on
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                  ₹{Number(p.price).toLocaleString()}
+                  {formatLKR(p.price)}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize ${STATUS_STYLES[p.status] || 'bg-gray-100 text-gray-600'}`}>
