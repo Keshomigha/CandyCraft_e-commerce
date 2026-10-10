@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, LogOut, Menu, X } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 import LogoMark from '../components/common/LogoMark';
 import PanelHeaderActions from '../components/common/PanelHeaderActions';
+import LogoutConfirmModal from '../components/common/LogoutConfirmModal';
 
 const SITE_LINKS = [
   { to: '/', label: 'Home', end: true },
@@ -30,7 +31,11 @@ export default function DashboardShell({ role, nav, maxWidth = 'max-w-6xl' }) {
 
   const firstName = user?.name?.split(' ')[0] || '';
 
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const closeConfirm = useCallback(() => setConfirmLogout(false), []);
+
   const handleLogout = () => {
+    setConfirmLogout(false);
     logout();
     navigate('/login');
   };
@@ -99,7 +104,7 @@ export default function DashboardShell({ role, nav, maxWidth = 'max-w-6xl' }) {
 
       <div className="px-3 py-4 border-t border-gray-100">
         <button
-          onClick={handleLogout}
+          onClick={() => { setMobileOpen(false); setConfirmLogout(true); }}
           title={isCollapsed ? 'Logout' : undefined}
           className={`flex items-center gap-3 w-full rounded-xl py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors
             ${isCollapsed ? 'justify-center px-0' : 'px-3'}`}
@@ -190,6 +195,8 @@ export default function DashboardShell({ role, nav, maxWidth = 'max-w-6xl' }) {
             </>
           )}
         </AnimatePresence>
+
+        <LogoutConfirmModal open={confirmLogout} onCancel={closeConfirm} onConfirm={handleLogout} />
 
         {/* ── Page content ── */}
         <main className={`flex-1 min-w-0 p-6 lg:p-8 w-full ${maxWidth} mx-auto`}>
