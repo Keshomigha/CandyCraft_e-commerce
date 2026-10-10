@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, tableRow } from '../../utils/motionVariants';
+import { ClipboardList } from 'lucide-react';
+import { formatLKR } from '../../utils/constants';
 
 const STATUS_STYLES = {
   pending:    'bg-amber-100 text-amber-700',
@@ -24,7 +26,7 @@ export default function OrderMonitorTable({ orders, onUpdateStatus }) {
   if (orders.length === 0) {
     return (
       <div className="px-6 py-16 text-center">
-        <p className="text-4xl mb-3">📋</p>
+        <ClipboardList className="w-10 h-10 mx-auto mb-3 text-gray-300" strokeWidth={1.5} />
         <p className="text-gray-400 text-sm">No orders found.</p>
       </div>
     );
@@ -65,7 +67,7 @@ export default function OrderMonitorTable({ orders, onUpdateStatus }) {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <span className="text-sm font-semibold text-gray-800">
-                    ₹{Number(o.total_amount).toLocaleString()}
+                    {formatLKR(o.total_amount)}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center">
