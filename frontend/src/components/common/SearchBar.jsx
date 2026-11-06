@@ -5,14 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getSearchSuggestions } from '../../api/productApi';
 import { getRecentSearches, addRecentSearch, clearRecentSearches } from '../../utils/recentSearches';
 import useMediaQuery from '../../hooks/useMediaQuery';
+import { ChevronLeft, Clock, Mic, Search, X, Candy, Tag, Store, TrendingUp } from 'lucide-react';
+import { formatLKR } from '../../utils/constants';
 
 const PLACEHOLDER = 'Search products, shops, and categories';
 
 function SearchIcon({ className = 'w-5 h-5' }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-    </svg>
+    <Search className={className} />
   );
 }
 
@@ -236,13 +236,13 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
       <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center overflow-hidden flex-shrink-0">
         {p.image_url ? (
           <img src={`${import.meta.env.VITE_API_URL}${p.image_url}`} alt="" className="w-full h-full object-contain" />
-        ) : <span className="text-lg">🍬</span>}
+        ) : <Candy className="w-5 h-5 text-pink-300" strokeWidth={1.5} />}
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm text-gray-800 truncate">{p.name}</p>
         <p className="text-xs text-gray-400">{p.category}</p>
       </div>
-      <span className="text-sm font-semibold text-pink-500 flex-shrink-0">₹{Number(p.price).toFixed(2)}</span>
+      <span className="text-sm font-semibold text-pink-500 flex-shrink-0">{formatLKR(p.price)}</span>
     </button>
   );
 
@@ -262,9 +262,7 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
       {isMobile && (
         <div className="flex items-center gap-2 px-3 py-3 border-b border-gray-100 flex-shrink-0">
           <button onClick={close} aria-label="Back" className="p-2 -ml-1 text-gray-500 active:scale-90 transition-transform">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex-1 relative">
             <SearchIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -279,9 +277,7 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
             />
             {query && (
               <button onClick={() => setQuery('')} aria-label="Clear search" className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 p-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
@@ -332,7 +328,7 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
                         onClick={() => goToCategory(c)}
                         className={`w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 transition-colors ${flatList[activeIndex]?.key === `c-${c}` ? 'bg-pink-50' : 'hover:bg-gray-50'}`}
                       >
-                        <span className="text-gray-400">🏷️</span> {c}
+                        <Tag className="w-4 h-4 text-gray-400" /> {c}
                       </button>
                     ))}
                   </div>
@@ -348,7 +344,7 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
                         onClick={() => goToShop(s.shop_name)}
                         className={`w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 transition-colors ${flatList[activeIndex]?.key === `s-${s.id}` ? 'bg-pink-50' : 'hover:bg-gray-50'}`}
                       >
-                        <span className="text-gray-400">🏪</span> {s.shop_name}
+                        <Store className="w-4 h-4 text-gray-400" /> {s.shop_name}
                       </button>
                     ))}
                   </div>
@@ -379,9 +375,7 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
                     onClick={() => runSearch(t)}
                     className={`w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 transition-colors ${flatList[activeIndex]?.key === `r-${t}` ? 'bg-pink-50' : 'hover:bg-gray-50'}`}
                   >
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <Clock className="w-3.5 h-3.5 text-gray-400" />
                     {t}
                   </button>
                 ))}
@@ -399,7 +393,7 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
                       onClick={() => runSearch(t)}
                       className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${flatList[activeIndex]?.key === `pop-${t}` ? 'border-pink-400 bg-pink-50 text-pink-600' : 'border-gray-200 text-gray-600 hover:border-pink-300'}`}
                     >
-                      🔥 {t}
+                      <span className="inline-flex items-center gap-1"><TrendingUp className="w-3 h-3" /> {t}</span>
                     </button>
                   ))}
                 </div>
@@ -438,9 +432,7 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
             {query && (
               <button onClick={() => setQuery('')} aria-label="Clear search" className="text-gray-400 hover:text-pink-500 p-1.5">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="w-4 h-4" />
               </button>
             )}
             {canVoice && (
@@ -450,9 +442,7 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
                 aria-label="Voice search"
                 className={`p-1.5 rounded-full ${listening ? 'text-pink-500 bg-pink-50' : 'text-gray-400 hover:text-pink-500'}`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-                </svg>
+                <Mic className="w-4 h-4" />
               </motion.button>
             )}
           </div>
@@ -490,9 +480,7 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
                     aria-label="Voice search"
                     className={`p-1.5 rounded-full ${listening ? 'text-pink-500 bg-pink-100' : 'text-gray-400 hover:text-pink-500'}`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-                    </svg>
+                    <Mic className="w-4 h-4" />
                   </motion.button>
                 )}
                 <motion.button
@@ -501,9 +489,7 @@ export default function SearchBar({ variant = 'bar', className = '' }) {
                   aria-label="Close search"
                   className="p-1.5 rounded-full text-gray-400 hover:text-pink-500"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="w-4 h-4" />
                 </motion.button>
               </div>
             </motion.div>
