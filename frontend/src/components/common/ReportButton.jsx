@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { submitReport } from '../../api/reportApi';
 import useAuth from '../../hooks/useAuth';
+import { Flag, CircleCheck, TriangleAlert } from 'lucide-react';
 
 const REASONS = [
   { value: 'scam', label: 'Scam or fraud' },
@@ -69,9 +70,7 @@ export default function ReportButton({ targetType, targetId, targetLabel, varian
           title="Report"
           className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow text-gray-400 hover:text-red-500 transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18M3 4h13l-2 4 2 4H3" />
-          </svg>
+          <Flag className="w-4 h-4" />
         </motion.button>
       ) : (
         <motion.button
@@ -80,9 +79,7 @@ export default function ReportButton({ targetType, targetId, targetLabel, varian
           onClick={openModal}
           className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-red-500 transition-colors"
         >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18M3 4h13l-2 4 2 4H3" />
-          </svg>
+          <Flag className="w-3.5 h-3.5" />
           Report
         </motion.button>
       )}
@@ -115,7 +112,7 @@ export default function ReportButton({ targetType, targetId, targetLabel, varian
                     className="text-center py-4"
                   >
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${result.ok ? 'bg-green-100' : 'bg-red-100'}`}>
-                      <span className="text-2xl">{result.ok ? '✅' : '⚠️'}</span>
+                      {result.ok ? <CircleCheck className="w-6 h-6 text-green-600" /> : <TriangleAlert className="w-6 h-6 text-red-500" />}
                     </div>
                     <p className="text-sm text-gray-700 mb-5">{result.message}</p>
                     <button
@@ -128,9 +125,7 @@ export default function ReportButton({ targetType, targetId, targetLabel, varian
                 ) : (
                   <motion.form key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onSubmit={handleSubmit}>
                     <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18M3 4h13l-2 4 2 4H3" />
-                      </svg>
+                      <Flag className="w-6 h-6 text-red-500" />
                     </div>
                     <h3 className="text-lg font-bold text-gray-800 text-center mb-1">
                       Report {targetType === 'product' ? 'Listing' : 'User'}
