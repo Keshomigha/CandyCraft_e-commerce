@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, tableRow } from '../../utils/motionVariants';
+import { Users } from 'lucide-react';
 
 const ROLE_STYLES = {
   buyer:  'bg-blue-100 text-blue-700',
@@ -17,7 +18,7 @@ export default function UserTable({ users, currentUserId, onToggleStatus, onDele
   if (users.length === 0) {
     return (
       <div className="px-6 py-16 text-center">
-        <p className="text-4xl mb-3">👥</p>
+        <Users className="w-10 h-10 mx-auto mb-3 text-gray-300" strokeWidth={1.5} />
         <p className="text-gray-400 text-sm">No users found.</p>
       </div>
     );
