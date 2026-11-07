@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuth from '../../hooks/useAuth';
 import LogoMark from './LogoMark';
 import SearchBar from './SearchBar';
+import LogoutConfirmModal from './LogoutConfirmModal';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', end: true },
@@ -19,7 +20,11 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const closeConfirm = useCallback(() => setConfirmLogout(false), []);
+
   const handleLogout = () => {
+    setConfirmLogout(false);
     logout();
     navigate('/');
   };
@@ -109,7 +114,7 @@ export default function Navbar() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={handleLogout}
+                  onClick={() => setConfirmLogout(true)}
                   className="border border-pink-500 text-pink-500 hover:bg-pink-50 text-sm font-medium px-4 py-2 rounded-full transition-colors whitespace-nowrap"
                 >
                   Logout
@@ -190,7 +195,7 @@ export default function Navbar() {
               <div className="border-t border-gray-100 mt-2 pt-3">
                 {user ? (
                   <button
-                    onClick={() => { setMenuOpen(false); handleLogout(); }}
+                    onClick={() => { setMenuOpen(false); setConfirmLogout(true); }}
                     className="w-full text-left py-2.5 px-2 text-sm font-medium text-pink-500"
                   >
                     Logout
@@ -209,6 +214,7 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+      <LogoutConfirmModal open={confirmLogout} onCancel={closeConfirm} onConfirm={handleLogout} />
     </motion.nav>
   );
 }
