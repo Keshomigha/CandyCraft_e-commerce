@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, tableRow } from '../../utils/motionVariants';
+import { SquarePen, Trash2, Candy, Package } from 'lucide-react';
 
 const STATUS_STYLES = {
   approved: 'bg-green-100 text-green-700',
@@ -11,7 +12,7 @@ export default function ProductTable({ products, onEdit, onDelete, apiUrl }) {
   if (products.length === 0) {
     return (
       <div className="px-6 py-16 text-center">
-        <p className="text-4xl mb-3">📦</p>
+        <Package className="w-10 h-10 mx-auto mb-3 text-gray-300" strokeWidth={1.5} />
         <p className="text-gray-400 text-sm">No products found. Add your first product!</p>
       </div>
     );
@@ -45,7 +46,7 @@ export default function ProductTable({ products, onEdit, onDelete, apiUrl }) {
                       {p.image_url ? (
                         <img src={`${apiUrl}${p.image_url}`} alt="" className="w-full h-full object-contain p-1" />
                       ) : (
-                        <span className="text-lg">🍬</span>
+                        <Candy className="w-5 h-5 text-pink-300" strokeWidth={1.5} />
                       )}
                     </div>
                     <span className="text-sm font-semibold text-gray-800 truncate max-w-[180px]">{p.name}</span>
@@ -78,10 +79,7 @@ export default function ProductTable({ products, onEdit, onDelete, apiUrl }) {
                       className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
                       title="Edit"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                      <SquarePen className="w-4 h-4" />
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.15 }}
@@ -90,10 +88,7 @@ export default function ProductTable({ products, onEdit, onDelete, apiUrl }) {
                       className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
                       title="Delete"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      <Trash2 className="w-4 h-4" />
                     </motion.button>
                   </div>
                 </td>
