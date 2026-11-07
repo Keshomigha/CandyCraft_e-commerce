@@ -31,7 +31,7 @@ export default function ShopNameModal({ open, submitting, onCancel, onSubmit }) 
             <div className="flex justify-center mb-4">
               <LogoMark className="w-11 h-11" />
             </div>
-            <h3 className="text-lg font-bold text-gray-800 text-center mb-1">Welcome to CandyCraft! 🎉</h3>
+            <h3 className="text-lg font-bold text-gray-800 text-center mb-1">Welcome to CandyCraft!</h3>
             <p className="text-sm text-gray-500 text-center mb-5">
               You're almost set up as a seller. What would you like to name your shop?
             </p>
