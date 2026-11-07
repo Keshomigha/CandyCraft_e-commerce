@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, tableRow } from '../../utils/motionVariants';
+import { ClipboardList, Sparkles } from 'lucide-react';
 
 const STATUS_STYLES = {
   pending:    'bg-amber-100 text-amber-700',
@@ -74,7 +75,7 @@ export default function SellerOrderTable({ orders, onUpdateStatus, apiUrl }) {
   if (orders.length === 0) {
     return (
       <div className="px-6 py-16 text-center">
-        <p className="text-4xl mb-3">📋</p>
+        <ClipboardList className="w-10 h-10 mx-auto mb-3 text-gray-300" strokeWidth={1.5} />
         <p className="text-gray-400 text-sm">No orders found.</p>
       </div>
     );
@@ -118,7 +119,7 @@ export default function SellerOrderTable({ orders, onUpdateStatus, apiUrl }) {
                           title="View customization details"
                           className="text-[11px] font-bold text-pink-600 bg-pink-50 hover:bg-pink-100 px-2 py-0.5 rounded-full transition-colors flex-shrink-0"
                         >
-                          ✨
+                          <Sparkles className="w-3 h-3" />
                         </button>
                       )}
                     </div>
@@ -182,7 +183,7 @@ export default function SellerOrderTable({ orders, onUpdateStatus, apiUrl }) {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="bg-orange-50 border-2 border-dashed border-[#F4A261] rounded-xl p-4 mb-4">
-                <p className="text-sm font-bold text-gray-800 mb-2">✨ Customization Details</p>
+                <p className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-pink-500" /> Customization Details</p>
                 <p className="text-xs text-gray-500 mb-3">Order #{viewing.order_id} · {viewing.name}</p>
                 <CustomizationRows customization={viewing.customization} />
               </div>
