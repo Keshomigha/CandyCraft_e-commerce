@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Image as ImageIcon, Mail, Palette } from 'lucide-react';
 import {
   CATEGORY_LABELS,
   GENERIC_OPTIONS,
@@ -133,10 +134,7 @@ export default function ProductForm({ initial = {}, onSubmit, saving }) {
               <img src={preview} alt="Preview" className="w-full h-full object-contain p-1" />
             ) : (
               <div className="text-center">
-                <svg className="w-8 h-8 text-gray-300 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+                <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-1" strokeWidth={1.5} />
                 <p className="text-[10px] text-gray-400">Click to upload</p>
               </div>
             )}
@@ -223,7 +221,7 @@ export default function ProductForm({ initial = {}, onSubmit, saving }) {
           transition={{ duration: 0.4, delay: 0.14 }}
           className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
         >
-          <span className="font-bold text-gray-800 block">💌 Greeting Card Options</span>
+          <span className="font-bold text-gray-800 flex items-center gap-2"><Mail className="w-4 h-4 text-pink-500" /> Greeting Card Options</span>
           <span className="text-xs text-gray-400">Choose what buyers can personalize on this card</span>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 mb-5">
@@ -272,7 +270,7 @@ export default function ProductForm({ initial = {}, onSubmit, saving }) {
           transition={{ duration: 0.4, delay: 0.14 }}
           className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
         >
-          <span className="font-bold text-gray-800 block">🎨 Custom Painting Options</span>
+          <span className="font-bold text-gray-800 flex items-center gap-2"><Palette className="w-4 h-4 text-pink-500" /> Custom Painting Options</span>
           <span className="text-xs text-gray-400">Choose how buyers can personalize this painting</span>
 
           <div className="mt-4 mb-4">
