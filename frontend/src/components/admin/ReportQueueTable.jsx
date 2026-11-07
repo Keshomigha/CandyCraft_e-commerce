@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, listItem } from '../../utils/motionVariants';
+import { Flag, Flame } from 'lucide-react';
 
 const REASON_LABELS = {
   scam: 'Scam or fraud',
@@ -25,7 +26,7 @@ export default function ReportQueueTable({ reports, onAction, busyId }) {
   if (reports.length === 0) {
     return (
       <div className="px-6 py-16 text-center">
-        <p className="text-4xl mb-3">🚩</p>
+        <Flag className="w-10 h-10 mx-auto mb-3 text-gray-300" strokeWidth={1.5} />
         <p className="text-gray-400 text-sm">No reports found.</p>
       </div>
     );
@@ -47,8 +48,8 @@ export default function ReportQueueTable({ reports, onAction, busyId }) {
                     </span>
                     <span className="text-sm font-semibold text-gray-800">{r.target_name || `#${r.target_id}`}</span>
                     {r.priority && (
-                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-600">
-                        🔥 Priority · {r.total_reports_for_target} reports
+                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-600 inline-flex items-center gap-1">
+                        <Flame className="w-3 h-3" /> Priority · {r.total_reports_for_target} reports
                       </span>
                     )}
                     <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize ${STATUS_STYLES[r.status]}`}>
